@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend Data</title>
+</head>
+<body>
+    <h1>Testing Frontend Data Flow</h1>
+    <div id="sensor-data"></div>
+    <div id="socket-status"></div>
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:3000');
+        
+        socket.on('connect', () => {
+            document.getElementById('socket-status').innerHTML = '<p style="color: green;">✅ Socket Connected</p>';
+        });
+        
+        socket.on('disconnect', () => {
+            document.getElementById('socket-status').innerHTML = '<p style="color: red;">❌ Socket Disconnected</p>';
+        });
+        
+        socket.on('sensor_update', (data) => {
+            console.log('Received sensor update:', data);
+            document.getElementById('sensor-data').innerHTML = 
+                '<h3>Latest Sensor Data:</h3>' +
+                '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        });
+        
+        // Also test direct API call
+        fetch('http://localhost:3000/api/sensors')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('sensor-data').innerHTML += 
+                    '<h3>API Data:</h3>' +
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                document.getElementById('sensor-data').innerHTML += 
+                    '<p style="color: red;">API Error: ' + error.message + '</p>';
+            });
+    </script>
+</body>
+</html>
+
+
+
