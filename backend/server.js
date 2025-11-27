@@ -453,6 +453,14 @@ app.get('/api/devices', (req, res) => {
   });
 });
 
+// Get current water level
+app.get('/api/water/level', (req, res) => {
+  const level = latest['home/sensors/water-level']?.level || 
+                latest['device/water/level']?.level || 
+                50; // Default to 50 if no data
+  res.json({ level });
+});
+
 app.post('/api/control', (req, res) => {
   const { device, action } = req.body;
   if (!device || !action) {

@@ -167,16 +167,19 @@ const FaceRecognitionPanel = ({ socket, onRecentDetectionsChange }) => {
         body: JSON.stringify({ name: personName })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         fetchKnownPersons();
         fetchStats();
         alert(`✅ Deleted ${personName}`);
       } else {
-        alert('❌ Failed to delete person');
+        console.error('Delete error response:', data);
+        alert(`❌ Failed to delete person: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting person:', error);
-      alert('❌ Failed to delete person');
+      alert(`❌ Failed to delete person: ${error.message}`);
     }
   };
 

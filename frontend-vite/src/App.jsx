@@ -148,6 +148,19 @@ function App() {
       console.log("✅ Loaded device states from localStorage:", JSON.parse(saved));
     }
 
+    // Fetch initial water level from server
+    fetch("/api/water/level")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Initial water level:", data);
+        if (data.level !== undefined) {
+          setWaterLevel(data.level);
+        }
+      })
+      .catch((error) => {
+        console.log("Water level endpoint not available, using default:", error);
+      });
+
     // Fetch weather data
     fetchWeather();
     // Update weather every 10 minutes
@@ -193,11 +206,19 @@ function App() {
 
       socket.on("fridge_detection", ({ items, count, timestamp }) => {
         if (items && Array.isArray(items)) {
+          let hasEgg = false;
+          let newItems = [];
+          
           setFridgeInventory((prev) => {
             const updated = [...prev];
             for (const detectedItem of items) {
               const itemLower = detectedItem.name.toLowerCase();
               const existingIndex = updated.findIndex(p => p.item.toLowerCase() === itemLower);
+              
+              // Check if egg was detected
+              if (itemLower.includes('egg')) {
+                hasEgg = true;
+              }
               
               if (existingIndex >= 0) {
                 // Update existing item
@@ -208,6 +229,7 @@ function App() {
                 };
               } else {
                 // Add new item
+                newItems.push(detectedItem.name);
                 updated.push({
                   item: detectedItem.name,
                   quantity: detectedItem.quantity,
@@ -218,7 +240,14 @@ function App() {
             }
             return updated;
           });
-          addNotification(`Fridge detection: ${count} item(s) detected`, 'info');
+          
+          // Add specific notifications
+          if (hasEgg) {
+            addNotification(`Egg detected in fridge`, 'success');
+          }
+          if (newItems.length > 0) {
+            addNotification(`New items detected: ${newItems.join(', ')}`, 'info');
+          }
         }
       });
 
@@ -530,20 +559,23 @@ function App() {
       const updated = { ...prev };
       if (isOn) {
         // Device turned on
-        if (updated[device] && !updated[device].isRunning) {
-          // Resume: continue from where it stopped
+        if (updated[device] && updated[device].accumulatedTime > 0 && !updated[device].isRunning) {
+          // Resume: continue from where it stopped (has accumulated time and not running)
           updated[device].startTime = new Date().getTime();
           updated[device].isRunning = true;
           console.log(`⏱ ${device} resumed from ${updated[device].accumulatedTime}s`);
-        } else {
-          // Start fresh timer
+        } else if (!updated[device]) {
+          // First time - start fresh timer
           updated[device] = {
             startTime: new Date().getTime(),
             duration: 0,
             accumulatedTime: 0,
             isRunning: true
           };
-          console.log(`⏱ ${device} started`);
+          console.log(`⏱ ${device} started fresh`);
+        } else if (updated[device].isRunning) {
+          // Already running, do nothing
+          console.log(`⏱ ${device} already running`);
         }
       } else {
         // Device turned off - save accumulated time
