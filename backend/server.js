@@ -666,8 +666,7 @@ app.get('/api/face/recent', async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(parseInt(req.query.limit) || 10, 100)); // Clamp between 1-100
     const [rows] = await pool.execute(
-      'SELECT person_name, status, confidence, timestamp FROM face_recognition ORDER BY timestamp DESC LIMIT ?',
-      [limit]
+      `SELECT person_name, status, confidence, timestamp FROM face_recognition ORDER BY timestamp DESC LIMIT ${limit}`
     );
     
     res.json({ 
