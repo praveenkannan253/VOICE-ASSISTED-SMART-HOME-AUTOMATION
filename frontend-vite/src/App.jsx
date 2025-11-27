@@ -726,7 +726,6 @@ function App() {
                   <p className="mb-0 mt-2 text-muted">Loading weather...</p>
                 </div>
               )}
-            </div>
           </div>
 
           {/* Face Recognition Panel */}
