@@ -67,7 +67,7 @@ grocery_list = [
     # Vegetables
     "carrot", "broccoli", "potato", "tomato", "onion", "pepper",
     # Dairy & Food
-    "milk", "bread", "cheese", "bottle", "cup", "bowl"
+    "egg", "bread", "cheese", "bottle", "cup", "bowl"
 ]
 
 # Print available YOLO classes for debugging

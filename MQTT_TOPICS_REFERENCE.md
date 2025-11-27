@@ -126,9 +126,9 @@ This document lists all MQTT topics used in the Smart Home IoT System for sensor
         "confidence": 0.95
       },
       {
-        "name": "milk",
-        "quantity": 1,
-        "confidence": 0.92
+        "name": "egg",
+        "quantity": 6,
+        "confidence": 0.93
       }
     ],
     "timestamp": "2025-11-28T03:30:00Z"

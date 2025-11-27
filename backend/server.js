@@ -813,13 +813,25 @@ app.post('/api/face/delete-person', async (req, res) => {
   try {
     const { name } = req.body;
     
-    if (!name) {
-      return res.status(400).json({ error: 'name required' });
+    if (!name || name.trim() === '') {
+      console.error('❌ Delete person error: name is empty');
+      return res.status(400).json({ error: 'name_required', message: 'Person name is required' });
     }
 
     console.log(`\n🗑️ Attempting to delete person: ${name}`);
 
-    // First, mark all detections of this person as unknown
+    // First, check if person exists
+    const [existingPerson] = await pool.execute(
+      'SELECT name FROM known_persons WHERE name = ?',
+      [name]
+    );
+
+    if (existingPerson.length === 0) {
+      console.log(`⚠️ Person not found in database: ${name}`);
+      return res.status(404).json({ error: 'person_not_found', message: `Person "${name}" not found` });
+    }
+
+    // Mark all detections of this person as unknown
     const [detections] = await pool.execute(
       'SELECT id FROM face_recognition WHERE person_name = ?',
       [name]
@@ -840,16 +852,28 @@ app.post('/api/face/delete-person', async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      console.log(`⚠️ Person not found: ${name}`);
-      return res.status(404).json({ error: 'person_not_found' });
+      console.log(`⚠️ Failed to delete person: ${name}`);
+      return res.status(500).json({ error: 'delete_failed', message: 'Failed to delete person from database' });
     }
 
-    console.log(`\n✅ Deleted known person: ${name}`);
+    console.log(`\n✅ Successfully deleted known person: ${name}`);
+    console.log(`   - Updated ${detections.length} detections to unknown`);
 
-    res.json({ status: 'OK', name });
+    res.json({ 
+      status: 'OK', 
+      name,
+      message: `Person "${name}" deleted successfully`,
+      detections_updated: detections.length
+    });
   } catch (err) {
-    console.error('⚠️ Delete known person error:', err);
-    res.status(500).json({ error: 'delete_person_failed', details: err.message });
+    console.error('❌ Delete known person error:', err);
+    console.error('   Error details:', err.message);
+    console.error('   Stack:', err.stack);
+    res.status(500).json({ 
+      error: 'delete_person_failed', 
+      message: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
