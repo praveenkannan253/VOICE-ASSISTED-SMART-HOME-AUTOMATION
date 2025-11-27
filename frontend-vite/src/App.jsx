@@ -66,7 +66,18 @@ function App() {
   });
   const [waterLevel, setWaterLevel] = useState(50); // 0-100%
   const [showWaterLevel, setShowWaterLevel] = useState(false); // Show water level only on click
-  const [deviceTimers, setDeviceTimers] = useState({}); // Track on/off timings
+  const [deviceTimers, setDeviceTimers] = useState(() => {
+    // Load from localStorage if available
+    const saved = localStorage.getItem('deviceTimers');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing saved device timers:', e);
+      }
+    }
+    return {}; // Empty object, timers will be created as devices are used
+  }); // Track on/off timings
   const [recentDetections, setRecentDetections] = useState([]); // Face detections for voice panel
   const timerIntervalRef = useRef(null);
   const tempChartRef = useRef(null);
@@ -484,11 +495,15 @@ function App() {
         for (const device in updated) {
           if (updated[device] && updated[device].isRunning) {
             // Calculate elapsed time since start
-            const elapsedSeconds = Math.floor((new Date() - updated[device].startTime) / 1000);
+            const elapsedSeconds = Math.floor((new Date().getTime() - updated[device].startTime) / 1000);
             // Total = accumulated time + current session
             updated[device].duration = updated[device].accumulatedTime + elapsedSeconds;
             changed = true;
           }
+        }
+        if (changed) {
+          // Persist to localStorage
+          localStorage.setItem('deviceTimers', JSON.stringify(updated));
         }
         return changed ? updated : prev;
       });
@@ -517,13 +532,13 @@ function App() {
         // Device turned on
         if (updated[device] && !updated[device].isRunning) {
           // Resume: continue from where it stopped
-          updated[device].startTime = new Date();
+          updated[device].startTime = new Date().getTime();
           updated[device].isRunning = true;
           console.log(`⏱ ${device} resumed from ${updated[device].accumulatedTime}s`);
         } else {
           // Start fresh timer
           updated[device] = {
-            startTime: new Date(),
+            startTime: new Date().getTime(),
             duration: 0,
             accumulatedTime: 0,
             isRunning: true
@@ -533,13 +548,15 @@ function App() {
       } else {
         // Device turned off - save accumulated time
         if (updated[device] && updated[device].isRunning) {
-          const sessionDuration = Math.floor((new Date() - updated[device].startTime) / 1000);
+          const sessionDuration = Math.floor((new Date().getTime() - updated[device].startTime) / 1000);
           updated[device].accumulatedTime += sessionDuration;
           updated[device].duration = updated[device].accumulatedTime;
           updated[device].isRunning = false;
           console.log(`⏱ ${device} stopped. Total: ${updated[device].accumulatedTime}s`);
         }
       }
+      // Persist to localStorage
+      localStorage.setItem('deviceTimers', JSON.stringify(updated));
       return updated;
     });
     
