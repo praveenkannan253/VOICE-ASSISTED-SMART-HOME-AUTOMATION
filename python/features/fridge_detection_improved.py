@@ -60,14 +60,14 @@ model = YOLO("yolov9c.pt")
 # YOLO COCO dataset class names - actual detectable items
 # Using exact YOLO class names for reliable detection
 grocery_list = [
-    # Eggs - Priority item
+    # Eggs - Priority item (MUST be first for detection)
     "egg", "eggs",
     # Fruits
     "apple", "banana", "orange", "lemon", "lime", "strawberry", "blueberry",
     # Vegetables
     "carrot", "broccoli", "potato", "tomato", "onion", "pepper",
     # Dairy & Food
-    "egg", "bread", "cheese", "bottle", "cup", "bowl"
+    "bread", "cheese", "bottle", "cup", "bowl"
 ]
 
 # Print available YOLO classes for debugging

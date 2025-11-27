@@ -9,13 +9,13 @@ select * from fridge_items;
 USE smarthome;
 
 INSERT INTO fridge_items (item, quantity, status) VALUES
-('Milk', 5, 'ok'),
+('Egg', 12, 'ok'),
 ('Banana', 5, 'ok'),
 ('Orange', 5, 'ok'),
 ('Apple', 5, 'ok'),
 ('Tomato', 5, 'ok'),
 ('Carrot', 5, 'ok')
-ON DUPLICATE KEY UPDATE quantity=5, status='ok';
+ON DUPLICATE KEY UPDATE quantity=VALUES(quantity), status='ok';
 
 USE smarthome;
 
@@ -36,7 +36,7 @@ ALTER TABLE fridge_items AUTO_INCREMENT = 1;
 
 -- Insert fresh default items (quantity 5)
 INSERT INTO fridge_items (item, quantity, status) VALUES
-('Milk', 5, 'ok'),
+('Egg', 12, 'ok'),
 ('Banana', 5, 'ok'),
 ('Orange', 5, 'ok'),
 ('Apple', 5, 'ok'),
@@ -51,7 +51,7 @@ SET SQL_SAFE_UPDATES = 0;
 DELETE FROM fridge_items;
 ALTER TABLE fridge_items AUTO_INCREMENT = 1;
 INSERT INTO fridge_items (item, quantity, status) VALUES
-('Milk', 5, 'ok'),
+('Egg', 12, 'ok'),
 ('Banana', 5, 'ok'),
 ('Orange', 5, 'ok'),
 ('Apple', 5, 'ok'),

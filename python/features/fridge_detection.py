@@ -50,7 +50,7 @@ except Exception as e:
 # ---------------- Load YOLO Model ----------------
 print("🤖 Loading YOLO model...")
 model = YOLO("yolov9c.pt")
-grocery_list = ["apple", "banana", "orange", "milk", "bread", "bottle", "wine glass", "cup", "bowl"]
+grocery_list = ["egg", "eggs", "apple", "banana", "orange", "bread", "bottle", "wine glass", "cup", "bowl"]
 
 # ---------------- Inventory Counts ----------------
 grocery_counts = defaultdict(int)
