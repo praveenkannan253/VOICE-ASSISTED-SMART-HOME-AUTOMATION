@@ -791,17 +791,39 @@ app.post('/api/face/delete-person', async (req, res) => {
       return res.status(400).json({ error: 'name required' });
     }
 
-    await pool.execute(
+    console.log(`\n🗑️ Attempting to delete person: ${name}`);
+
+    // First, mark all detections of this person as unknown
+    const [detections] = await pool.execute(
+      'SELECT id FROM face_recognition WHERE person_name = ?',
+      [name]
+    );
+
+    if (detections.length > 0) {
+      console.log(`📝 Updating ${detections.length} detections to unknown`);
+      await pool.execute(
+        'UPDATE face_recognition SET person_name = "Unknown", status = "unknown" WHERE person_name = ?',
+        [name]
+      );
+    }
+
+    // Then delete from known_persons
+    const [result] = await pool.execute(
       'DELETE FROM known_persons WHERE name = ?',
       [name]
     );
+
+    if (result.affectedRows === 0) {
+      console.log(`⚠️ Person not found: ${name}`);
+      return res.status(404).json({ error: 'person_not_found' });
+    }
 
     console.log(`\n✅ Deleted known person: ${name}`);
 
     res.json({ status: 'OK', name });
   } catch (err) {
     console.error('⚠️ Delete known person error:', err);
-    res.status(500).json({ error: 'delete_person_failed' });
+    res.status(500).json({ error: 'delete_person_failed', details: err.message });
   }
 });
 
