@@ -466,56 +466,6 @@ function App() {
     });
   };
 
-  const uploadFridgeImage = async (file, itemName) => {
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('item', itemName);
-      formData.append('quantity', 1);
-
-      console.log(`📸 Uploading image for: ${itemName}`);
-      
-      const response = await fetch("/api/fridge/upload-image", {
-        method: "POST",
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log(`✅ Image uploaded successfully:`, data);
-      addNotification(`📸 Image uploaded for ${itemName}`, 'success');
-      
-      // Update fridge inventory with image
-      setFridgeInventory(prev => {
-        const itemLower = itemName.toLowerCase();
-        const existingIndex = prev.findIndex(p => p.item.toLowerCase() === itemLower);
-        
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            image: data.image
-          };
-          return updated;
-        } else {
-          return [...prev, {
-            item: itemName,
-            quantity: 1,
-            status: 'ok',
-            image: data.image,
-            updated_at: new Date().toISOString()
-          }];
-        }
-      });
-    } catch (error) {
-      console.error('❌ Image upload error:', error);
-      addNotification(`Failed to upload image: ${error.message}`, 'error');
-    }
-  };
-
   const fetchWeather = async () => {
     try {
       // Using Open-Meteo (free, no API key needed)
@@ -667,35 +617,6 @@ function App() {
           <div className="col-lg-4">
             <div className="card shadow p-3 mb-3">
               <h5>🧊 Refrigerator Monitoring</h5>
-              
-              {/* Image Upload Section */}
-              <div className="mb-3 p-2 border rounded" style={{backgroundColor: 'rgba(255,255,255,0.05)'}}>
-                <small className="text-muted d-block mb-2">📸 Upload Item Image</small>
-                <div className="d-flex gap-2">
-                  <input 
-                    type="file" 
-                    id="fridge-image-input"
-                    accept="image/*"
-                    style={{display: 'none'}}
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) {
-                        const itemName = prompt('Enter item name:');
-                        if (itemName) {
-                          uploadFridgeImage(file, itemName);
-                        }
-                      }
-                    }}
-                  />
-                  <button 
-                    className="btn btn-sm btn-outline-info"
-                    onClick={() => document.getElementById('fridge-image-input').click()}
-                  >
-                    📷 Choose Image
-                  </button>
-                </div>
-              </div>
-
               <div className="fridge-inventory">
                 {fridgeInventory.length > 0 ? (
                   fridgeInventory.map((item, index) => (
