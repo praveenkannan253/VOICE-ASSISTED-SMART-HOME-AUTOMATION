@@ -192,17 +192,6 @@ function App() {
         });
       });
 
-      // Listen for reboot acknowledgments
-      socket.on("reboot_ack", (data) => {
-        console.log("✅ Reboot acknowledgment received:", data);
-        addNotification(`✅ ${data.node.toUpperCase()} rebooted successfully`, 'success');
-      });
-
-      // Listen for reboot command confirmations
-      socket.on("reboot_command", (data) => {
-        console.log("🔄 Reboot command broadcast:", data);
-      });
-
       // Listen for reconnection to re-register listeners
       socket.on("reconnect", () => {
         console.log("🔌 Socket reconnected, re-registering listeners");
@@ -470,27 +459,6 @@ function App() {
     }).catch(err => console.error("Error sending command:", err));
   };
 
-  const sendRebootCommand = (nodeId) => {
-    console.log(`Sending reboot command to: ${nodeId}`);
-    
-    // Send reboot command via backend
-    fetch("/api/reboot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ node: nodeId }),
-    })
-    .then(res => res.json())
-    .then(data => {
-      console.log(`Reboot command sent to ${nodeId}:`, data);
-      // Add notification
-      addNotification(`🔄 Reboot command sent to ${nodeId}`, 'info');
-    })
-    .catch(err => {
-      console.error(`Error sending reboot to ${nodeId}:`, err);
-      addNotification(`❌ Failed to send reboot to ${nodeId}`, 'error');
-    });
-  };
-
   const updateFridgeItem = (item, quantity, action) => {
     fetch("/api/fridge/update", {
       method: "POST",
@@ -624,37 +592,94 @@ function App() {
                 </small>
               </div>
             </div>
-          </div>
 
-          {/* ESP32 Boot Controls Section */}
-          <div className="card shadow p-3 mb-3">
-            <h5>🔌 ESP32 Boot Controls</h5>
-            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px'}}>
-              <button 
-                className="btn btn-warning btn-sm"
-                onClick={() => sendRebootCommand('master')}
-                style={{padding: '10px 12px', fontSize: '0.85rem', fontWeight: '600'}}
-              >
-                🔄 Master Boot
-              </button>
-              <button 
-                className="btn btn-info btn-sm"
-                onClick={() => sendRebootCommand('slave1')}
-                style={{padding: '10px 12px', fontSize: '0.85rem', fontWeight: '600'}}
-              >
-                🔄 Slave1 Boot
-              </button>
-              <button 
-                className="btn btn-info btn-sm"
-                onClick={() => sendRebootCommand('slave2')}
-                style={{padding: '10px 12px', fontSize: '0.85rem', fontWeight: '600'}}
-              >
-                🔄 Slave2 Boot
-              </button>
+            {/* ESP32 Boot Control Section */}
+            <div style={{marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)'}}>
+              <small style={{color: '#aaa', fontSize: '0.8rem', fontWeight: '600'}}>🔄 ESP32 Boot Control</small>
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginTop: '8px'}}>
+                <button 
+                  className="btn btn-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 6px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (socket) {
+                      socket.emit('mqtt_publish', {
+                        topic: 'device/boot',
+                        message: 'master boot'
+                      });
+                      addNotification('🔄 Master boot command sent', 'info');
+                    }
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  🔌 Master
+                </button>
+                <button 
+                  className="btn btn-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 6px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (socket) {
+                      socket.emit('mqtt_publish', {
+                        topic: 'device/boot',
+                        message: 'slave_1 boot'
+                      });
+                      addNotification('🔄 Slave 1 boot command sent', 'info');
+                    }
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  🔌 Slave 1
+                </button>
+                <button 
+                  className="btn btn-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 6px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (socket) {
+                      socket.emit('mqtt_publish', {
+                        topic: 'device/boot',
+                        message: 'slave_2 boot'
+                      });
+                      addNotification('🔄 Slave 2 boot command sent', 'info');
+                    }
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  🔌 Slave 2
+                </button>
+              </div>
             </div>
-            <small className="text-muted d-block mt-2" style={{fontSize: '0.75rem'}}>
-              💡 Tip: Click to send reboot command to ESP32 nodes. Check notifications for status.
-            </small>
           </div>
 
           {/* Sensors Section */}
