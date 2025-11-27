@@ -482,11 +482,11 @@ function App() {
         const updated = { ...prev };
         let changed = false;
         for (const device in updated) {
-          if (updated[device].isRunning) {
-            // Calculate current session time + accumulated time
-            const sessionTime = Math.floor((new Date() - updated[device].startTime) / 1000);
-            const baseTime = updated[device].duration - (updated[device].totalDuration || 0);
-            updated[device].duration = baseTime + sessionTime;
+          if (updated[device] && updated[device].isRunning) {
+            // Calculate elapsed time since start
+            const elapsedSeconds = Math.floor((new Date() - updated[device].startTime) / 1000);
+            // Total = accumulated time + current session
+            updated[device].duration = updated[device].accumulatedTime + elapsedSeconds;
             changed = true;
           }
         }
@@ -514,29 +514,30 @@ function App() {
     setDeviceTimers(prev => {
       const updated = { ...prev };
       if (isOn) {
-        // Device turned on - resume or start timer
+        // Device turned on
         if (updated[device] && !updated[device].isRunning) {
           // Resume: continue from where it stopped
           updated[device].startTime = new Date();
           updated[device].isRunning = true;
-          console.log(`⏱ ${device} resumed from ${updated[device].duration}s`);
+          console.log(`⏱ ${device} resumed from ${updated[device].accumulatedTime}s`);
         } else {
           // Start fresh timer
           updated[device] = {
             startTime: new Date(),
             duration: 0,
-            isRunning: true,
-            totalDuration: 0 // Track total accumulated time
+            accumulatedTime: 0,
+            isRunning: true
           };
+          console.log(`⏱ ${device} started`);
         }
       } else {
-        // Device turned off - stop timer but keep accumulated time
+        // Device turned off - save accumulated time
         if (updated[device] && updated[device].isRunning) {
           const sessionDuration = Math.floor((new Date() - updated[device].startTime) / 1000);
-          updated[device].duration += sessionDuration; // Add to accumulated time
-          updated[device].totalDuration = updated[device].duration;
+          updated[device].accumulatedTime += sessionDuration;
+          updated[device].duration = updated[device].accumulatedTime;
           updated[device].isRunning = false;
-          console.log(`⏱ ${device} stopped. Total: ${updated[device].duration}s`);
+          console.log(`⏱ ${device} stopped. Total: ${updated[device].accumulatedTime}s`);
         }
       }
       return updated;

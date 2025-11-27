@@ -155,6 +155,31 @@ const FaceRecognitionPanel = ({ socket, onRecentDetectionsChange }) => {
     }
   };
 
+  const deletePersonName = async (personName) => {
+    if (!window.confirm(`Are you sure you want to delete ${personName}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/api/face/delete-person', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: personName })
+      });
+
+      if (response.ok) {
+        fetchKnownPersons();
+        fetchStats();
+        alert(`✅ Deleted ${personName}`);
+      } else {
+        alert('❌ Failed to delete person');
+      }
+    } catch (error) {
+      console.error('Error deleting person:', error);
+      alert('❌ Failed to delete person');
+    }
+  };
+
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleString();
@@ -245,7 +270,7 @@ const FaceRecognitionPanel = ({ socket, onRecentDetectionsChange }) => {
                   <div className="person-avatar">
                     {(editingPersonId === person.name ? editingPersonName : person.name).charAt(0).toUpperCase()}
                   </div>
-                  <div className="person-details">
+                  <div className="person-details" style={{ flex: 1 }}>
                     {editingPersonId === person.name ? (
                       <input
                         type="text"
@@ -272,7 +297,7 @@ const FaceRecognitionPanel = ({ socket, onRecentDetectionsChange }) => {
                           setEditingPersonId(person.name);
                           setEditingPersonName(person.name);
                         }}
-                        style={{ cursor: 'pointer', marginBottom: '2px' }}
+                        style={{ cursor: 'pointer', marginBottom: '2px', margin: 0 }}
                         title="Click to edit"
                       >
                         {person.name} ✏️
@@ -283,6 +308,33 @@ const FaceRecognitionPanel = ({ socket, onRecentDetectionsChange }) => {
                       Last seen: {person.last_seen ? getTimeAgo(person.last_seen) : 'Never'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => deletePersonName(person.name)}
+                    style={{
+                      background: 'rgba(231, 76, 60, 0.2)',
+                      border: '1px solid #e74c3c',
+                      color: '#e74c3c',
+                      borderRadius: '4px',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      transition: 'all 0.2s',
+                      flexShrink: 0,
+                      marginLeft: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = 'rgba(231, 76, 60, 0.4)';
+                      e.target.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'rgba(231, 76, 60, 0.2)';
+                      e.target.style.transform = 'scale(1)';
+                    }}
+                    title="Delete person"
+                  >
+                    🗑️
+                  </button>
                 </div>
               ))}
               {knownPersons.length > 3 && (

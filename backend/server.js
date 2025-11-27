@@ -782,6 +782,29 @@ app.post('/api/face/add-known', async (req, res) => {
   }
 });
 
+// Delete known person
+app.post('/api/face/delete-person', async (req, res) => {
+  try {
+    const { name } = req.body;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'name required' });
+    }
+
+    await pool.execute(
+      'DELETE FROM known_persons WHERE name = ?',
+      [name]
+    );
+
+    console.log(`\n✅ Deleted known person: ${name}`);
+
+    res.json({ status: 'OK', name });
+  } catch (err) {
+    console.error('⚠️ Delete known person error:', err);
+    res.status(500).json({ error: 'delete_person_failed' });
+  }
+});
+
 // Get statistics
 app.get('/api/face/stats', async (req, res) => {
   try {
