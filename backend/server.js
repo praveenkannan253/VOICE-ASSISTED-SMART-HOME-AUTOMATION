@@ -395,8 +395,8 @@ io.on('connection', (socket) => {
   // Handle MQTT publish requests from frontend
   socket.on('mqtt_publish', (data) => {
     const { topic, message } = data;
-    if (topic && message && client) {
-      client.publish(topic, message, { qos: 1, retain: false }, (err) => {
+    if (topic && message && mqttClient) {
+      mqttClient.publish(topic, message, { qos: 1, retain: false }, (err) => {
         if (err) {
           console.error(`❌ MQTT publish error on topic ${topic}:`, err);
           socket.emit('mqtt_error', { topic, error: err.message });
