@@ -86,7 +86,7 @@ mqttClient.on('connect', () => {
   console.log('🔗 MQTT URL:', process.env.MQTT_URL || 'mqtt://broker-cn.emqx.io:1883');
   
   // Subscribe to sensor data and status updates from hardware
-  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor', 'home/control'], (err) => {
+  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'esp/water_level', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor', 'home/control', 'device/boot'], (err) => {
     if (err) {
       console.error("❌ Subscription error:", err.message);
     } else {
@@ -94,10 +94,12 @@ mqttClient.on('connect', () => {
       console.log('   • esp/sensors (Sensor data from hardware)');
       console.log('   • esp/status (Device status updates)');
       console.log('   • esp/# (All ESP topics)');
+      console.log('   • esp/water_level (Water level from ESP8266)');
       console.log('   • fridge/inventory (Fridge updates)');
       console.log('   • esp/cam (Face recognition data)');
       console.log('   • home/sensors/water-motor (Water motor status)');
       console.log('   • home/control (Motor control commands from external sources)');
+      console.log('   • device/boot (Boot commands for master/slave devices)');
     }
   });
 });
@@ -191,14 +193,29 @@ mqttClient.on('message', (topic, message) => {
     return;
   }
 
-  // Handle water level updates from ESP32
-  if (topic === 'home/sensors/water-level' || topic === 'device/water/level') {
+  // Handle water level updates from ESP8266
+  if (topic === 'esp/water_level' || topic === 'home/sensors/water-level' || topic === 'device/water/level') {
     let level = 50; // Default
+    let rawLevel = null;
     
-    if (typeof data === 'object' && data.level !== undefined) {
-      level = Math.min(100, Math.max(0, parseInt(data.level) || 50));
+    // Handle different data formats
+    if (typeof data === 'object') {
+      // Check for level_raw (from ESP8266) or level (normalized)
+      if (data.level_raw !== undefined) {
+        rawLevel = data.level_raw;
+        // Convert raw ADC value (0-1023) to percentage (0-100)
+        level = Math.min(100, Math.max(0, Math.round((rawLevel / 1023) * 100)));
+      } else if (data.level !== undefined) {
+        level = Math.min(100, Math.max(0, parseInt(data.level) || 50));
+      }
     } else if (typeof data === 'number') {
-      level = Math.min(100, Math.max(0, data));
+      // If it's a raw ADC value (>100), convert it
+      if (data > 100) {
+        rawLevel = data;
+        level = Math.min(100, Math.max(0, Math.round((data / 1023) * 100)));
+      } else {
+        level = Math.min(100, Math.max(0, data));
+      }
     } else if (typeof data === 'string') {
       level = Math.min(100, Math.max(0, parseInt(data) || 50));
     }
@@ -206,7 +223,7 @@ mqttClient.on('message', (topic, message) => {
     console.log(`\n💧 WATER LEVEL UPDATE`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`📡 Topic: ${topic}`);
-    console.log(`📊 Level: ${level}%`);
+    console.log(`📊 Level: ${level}%${rawLevel !== null ? ` (Raw: ${rawLevel})` : ''}`);
     console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
     
@@ -217,7 +234,7 @@ mqttClient.on('message', (topic, message) => {
       timestamp: new Date().toISOString()
     });
     
-    latest[topic] = { level };
+    latest[topic] = { level, rawLevel };
     return;
   }
 
@@ -455,7 +472,8 @@ app.get('/api/devices', (req, res) => {
 
 // Get current water level
 app.get('/api/water/level', (req, res) => {
-  const level = latest['home/sensors/water-level']?.level || 
+  const level = latest['esp/water_level']?.level || 
+                latest['home/sensors/water-level']?.level || 
                 latest['device/water/level']?.level || 
                 50; // Default to 50 if no data
   res.json({ level });
