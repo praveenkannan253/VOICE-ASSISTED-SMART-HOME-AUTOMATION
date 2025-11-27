@@ -7,6 +7,9 @@ echo Starting Fridge Detection System
 echo ============================================
 echo.
 
+REM Activate virtual environment
+call d:\Documents\SMARTHOME\.venv\Scripts\activate.bat
+
 cd /d d:\Documents\SMARTHOME\python\features
 
 echo Running: python fridge_detection.py
