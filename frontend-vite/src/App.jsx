@@ -590,6 +590,35 @@ function App() {
                 <small className="text-muted d-block" style={{fontSize: '0.75rem', textAlign: 'center'}}>
                   {waterLevel > 80 ? '✅ Full' : waterLevel > 40 ? '⚠️ Half' : '🔴 Low'}
                 </small>
+                <button
+                  className="btn btn-sm"
+                  style={{
+                    width: '100%',
+                    marginTop: '6px',
+                    background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '6px 8px',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => {
+                    if (socket) {
+                      socket.emit('mqtt_publish', {
+                        topic: 'device/water',
+                        message: 'check_level'
+                      });
+                      addNotification('🔍 Checking water level...', 'info');
+                    }
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                >
+                  🔍 Check Water Level
+                </button>
               </div>
             </div>
 
@@ -698,57 +727,91 @@ function App() {
             <div className="fridge-inventory">
               {fridgeInventory.length > 0 ? (
                 <>
-                  {(showAllFridgeItems ? fridgeInventory : fridgeInventory.slice(0, 2)).map((item, index) => (
-                    <div key={index} className="fridge-item d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                      <div className="d-flex align-items-center" style={{flex: 1}}>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '12px', marginBottom: '12px'}}>
+                    {(showAllFridgeItems ? fridgeInventory : fridgeInventory.slice(0, 4)).map((item, index) => (
+                      <div key={index} className="fridge-item" style={{
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        padding: '10px',
+                        textAlign: 'center',
+                        transition: 'all 0.2s',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        minHeight: '160px'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                      >
                         {/* Display fridge item image if available */}
-                        {item.image ? (
+                        {item.image_path ? (
                           <img 
-                            src={item.image} 
+                            src={`http://localhost:3000/api/fridge/image/${item.image_path}`}
                             alt={item.item}
                             style={{
-                              width: '50px',
-                              height: '50px',
+                              width: '80px',
+                              height: '80px',
                               borderRadius: '6px',
-                              marginRight: '10px',
                               objectFit: 'cover',
-                              border: '2px solid #ddd'
+                              border: '2px solid rgba(255,255,255,0.2)',
+                              marginBottom: '8px'
                             }}
                             onError={(e) => {
                               console.log(`Failed to load image for ${item.item}`);
-                              e.target.style.display = 'none';
+                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23333" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="12" fill="%23999"%3E📦%3C/text%3E%3C/svg%3E';
                             }}
                           />
-                        ) : null}
-                        <div>
-                          <span className="fw-bold text-capitalize" style={{fontSize: '0.9rem'}}>{item.item}</span>
-                          <small className="text-muted d-block" style={{fontSize: '0.8rem'}}>
-                            {new Date(item.updated_at).toLocaleTimeString()}
-                          </small>
+                        ) : (
+                          <div style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '6px',
+                            background: 'rgba(255,255,255,0.1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '32px',
+                            marginBottom: '8px'
+                          }}>
+                            📦
+                          </div>
+                        )}
+                        <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: '100%'}}>
+                          <div>
+                            <span className="fw-bold text-capitalize" style={{fontSize: '0.85rem', color: '#fff', display: 'block', marginBottom: '4px'}}>{item.item}</span>
+                            <small style={{fontSize: '0.7rem', color: '#aaa', display: 'block'}}>
+                              {item.updated_at ? new Date(item.updated_at).toLocaleDateString() : 'N/A'}
+                            </small>
+                          </div>
+                          <div style={{marginTop: '6px'}}>
+                            <span className="badge" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', fontSize: '0.75rem', marginBottom: '6px', display: 'block'}}>
+                              Qty: {item.quantity}
+                            </span>
+                            <div className="btn-group btn-group-sm" style={{width: '100%', display: 'flex', gap: '2px'}}>
+                              <button 
+                                className="btn btn-outline-success btn-sm"
+                                style={{padding: '2px 4px', fontSize: '0.7rem', flex: 1}}
+                                onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
+                              >
+                                +
+                              </button>
+                              <button 
+                                className="btn btn-outline-danger btn-sm"
+                                style={{padding: '2px 4px', fontSize: '0.7rem', flex: 1}}
+                                onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
+                                disabled={item.quantity <= 0}
+                              >
+                                -
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <div className="d-flex align-items-center" style={{gap: '6px'}}>
-                        <span className="badge bg-primary" style={{fontSize: '0.75rem'}}>{item.quantity}</span>
-                        <div className="btn-group btn-group-sm">
-                          <button 
-                            className="btn btn-outline-success btn-sm"
-                            style={{padding: '2px 6px', fontSize: '0.75rem'}}
-                            onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
-                          >
-                            +
-                          </button>
-                          <button 
-                            className="btn btn-outline-danger btn-sm"
-                            style={{padding: '2px 6px', fontSize: '0.75rem'}}
-                            onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
-                            disabled={item.quantity <= 0}
-                          >
-                            -
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                   {fridgeInventory.length > 2 && (
                     <button 
                       className="btn btn-sm"
