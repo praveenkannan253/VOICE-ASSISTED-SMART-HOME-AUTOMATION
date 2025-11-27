@@ -615,11 +615,32 @@ function App() {
                 {fridgeInventory.length > 0 ? (
                   fridgeInventory.map((item, index) => (
                     <div key={index} className="fridge-item d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                      <div>
-                        <span className="fw-bold text-capitalize">{item.item}</span>
-                        <small className="text-muted d-block">
-                          {new Date(item.updated_at).toLocaleTimeString()}
-                        </small>
+                      <div className="d-flex align-items-center" style={{flex: 1}}>
+                        {/* Display fridge item image if available */}
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.item}
+                            style={{
+                              width: '60px',
+                              height: '60px',
+                              borderRadius: '8px',
+                              marginRight: '12px',
+                              objectFit: 'cover',
+                              border: '2px solid #ddd'
+                            }}
+                            onError={(e) => {
+                              console.log(`Failed to load image for ${item.item}`);
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : null}
+                        <div>
+                          <span className="fw-bold text-capitalize">{item.item}</span>
+                          <small className="text-muted d-block">
+                            {new Date(item.updated_at).toLocaleTimeString()}
+                          </small>
+                        </div>
                       </div>
                       <div className="d-flex align-items-center">
                         <span className="badge bg-primary me-2">{item.quantity}</span>

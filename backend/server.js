@@ -6,6 +6,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Server } = require('socket.io');
 const { pool } = require('./db');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,6 +21,41 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(bodyParser.json());
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads', 'fridge');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log(`📁 Created uploads directory: ${uploadsDir}`);
+}
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const itemName = req.body.item || 'unknown';
+    const filename = `fridge_${timestamp}_${itemName}.jpg`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files allowed'));
+    }
+  }
+});
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(uploadsDir));
 
 // ===== MQTT broker =====
 const MQTT_URL = process.env.MQTT_URL || 'mqtt://broker-cn.emqx.io:1883';
@@ -390,6 +428,63 @@ app.post('/api/fridge/update', async (req, res) => {
   } catch (err) {
     console.error('⚠️ Fridge update error:', err);
     res.status(500).json({ error: 'fridge_update_failed' });
+  }
+});
+
+// ===== Fridge Image Upload Endpoint =====
+app.post('/api/fridge/upload-image', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+    
+    const { item, quantity } = req.body;
+    const imageFilename = req.file.filename;
+    const imageUrl = `/uploads/fridge/${imageFilename}`;
+    
+    console.log(`📸 Fridge image uploaded: ${item} -> ${imageUrl}`);
+    
+    // Update fridge item with image
+    await pool.execute(
+      'UPDATE fridge_items SET image_url = ? WHERE item = ?',
+      [imageUrl, item]
+    );
+    
+    // Broadcast update with image to all clients
+    io.emit('fridge_update', { 
+      item, 
+      quantity: quantity || 1, 
+      action: 'update',
+      image: imageUrl,
+      alert: null 
+    });
+    
+    res.json({ status: 'OK', item, image: imageUrl });
+  } catch (err) {
+    console.error('⚠️ Fridge image upload error:', err);
+    res.status(500).json({ error: 'image_upload_failed' });
+  }
+});
+
+// ===== Get Fridge Item Image =====
+app.get('/api/fridge/image/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filepath = path.join(uploadsDir, filename);
+    
+    // Security: prevent directory traversal
+    if (!filepath.startsWith(uploadsDir)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    if (fs.existsSync(filepath)) {
+      res.sendFile(filepath);
+    } else {
+      res.status(404).json({ error: 'Image not found' });
+    }
+  } catch (err) {
+    console.error('⚠️ Image retrieval error:', err);
+    res.status(500).json({ error: 'image_retrieval_failed' });
   }
 });
 
