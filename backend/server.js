@@ -86,7 +86,7 @@ mqttClient.on('connect', () => {
   console.log('🔗 MQTT URL:', process.env.MQTT_URL || 'mqtt://broker-cn.emqx.io:1883');
   
   // Subscribe to sensor data and status updates from hardware
-  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam'], (err) => {
+  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor'], (err) => {
     if (err) {
       console.error("❌ Subscription error:", err.message);
     } else {
@@ -96,6 +96,7 @@ mqttClient.on('connect', () => {
       console.log('   • esp/# (All ESP topics)');
       console.log('   • fridge/inventory (Fridge updates)');
       console.log('   • esp/cam (Face recognition data)');
+      console.log('   • home/sensors/water-motor (Water motor status)');
     }
   });
 });
@@ -125,6 +126,29 @@ mqttClient.on('message', (topic, message) => {
     // Silently skip switch/button state messages for clean output
     latest[topic] = data;
     io.emit('sensor_update', { topic, data });
+    return;
+  }
+
+  // Handle water motor status updates
+  if (topic === 'home/sensors/water-motor') {
+    const motorState = typeof data === 'object' ? data.state : data;
+    const isOn = motorState === 'on' || motorState === 'ON' || motorState === 1 || motorState === true;
+    
+    console.log(`\n💧 WATER MOTOR STATUS UPDATE`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📡 Topic: ${topic}`);
+    console.log(`⚡ State: ${isOn ? '🟢 ON' : '🔴 OFF'}`);
+    console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+    
+    // Broadcast water motor state to all clients
+    io.emit('device_state_change', {
+      device: 'water-motor',
+      state: isOn ? 'on' : 'off',
+      timestamp: new Date().toISOString()
+    });
+    
+    latest[topic] = { state: isOn ? 'on' : 'off' };
     return;
   }
 
