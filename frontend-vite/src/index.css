@@ -329,6 +329,29 @@ input:checked + .slider:before {
   color: #fff !important;
 }
 
+/* History Chart / LDR Chart Styling */
+.chart-container h5,
+.chart-container .text-white {
+  color: #fff !important;
+}
+
+/* Ensure all chart titles are visible */
+canvas + h5,
+h5.text-white {
+  color: #fff !important;
+}
+
+/* History Panel text */
+.history-panel h5,
+.history-panel p {
+  color: #fff !important;
+}
+
+/* Card titles in general */
+.card h5 {
+  color: #fff !important;
+}
+
 .alert-warning {
   background-color: rgba(255, 193, 7, 0.1);
   border-left: 3px solid #ffc107;
