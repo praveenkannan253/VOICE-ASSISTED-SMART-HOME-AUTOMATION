@@ -86,7 +86,7 @@ mqttClient.on('connect', () => {
   console.log('🔗 MQTT URL:', process.env.MQTT_URL || 'mqtt://broker-cn.emqx.io:1883');
   
   // Subscribe to sensor data and status updates from hardware
-  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor', 'home/control'], (err) => {
+  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor', 'home/control', 'esp/reboot/+/ack'], (err) => {
     if (err) {
       console.error("❌ Subscription error:", err.message);
     } else {
@@ -98,6 +98,7 @@ mqttClient.on('connect', () => {
       console.log('   • esp/cam (Face recognition data)');
       console.log('   • home/sensors/water-motor (Water motor status)');
       console.log('   • home/control (Motor control commands from external sources)');
+      console.log('   • esp/reboot/+/ack (Reboot acknowledgments from ESP32 nodes)');
     }
   });
 });
@@ -247,6 +248,27 @@ mqttClient.on('message', (topic, message) => {
     handleFaceRecognition(data);
   }
 
+  // Handle reboot acknowledgments from ESP32 nodes
+  if (topic.includes('esp/reboot') && topic.includes('ack')) {
+    const nodeMatch = topic.match(/esp\/reboot\/(\w+)\/ack/);
+    if (nodeMatch) {
+      const node = nodeMatch[1];
+      console.log(`\n✅ ESP32 REBOOT ACKNOWLEDGMENT`);
+      console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+      console.log(`🔄 Node: ${node.toUpperCase()}`);
+      console.log(`📊 Status: ${raw}`);
+      console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
+      console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+      
+      // Broadcast reboot acknowledgment to all connected clients
+      io.emit('reboot_ack', {
+        node: node,
+        status: raw,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
   // save to DB (only if it's JSON object)
   if (typeof data === 'object') {
     pool.execute('INSERT INTO sensors (topic, value_json) VALUES (?, ?)', [
@@ -387,6 +409,53 @@ app.post('/api/control', (req, res) => {
   io.emit('sensor_update', { topic: statusTopic, data: statusPayload });
 
   res.json({ status: 'OK', device, action });
+});
+
+// ===== ESP32 Reboot endpoint =====
+app.post('/api/reboot', (req, res) => {
+  const { node } = req.body;
+  if (!node) {
+    return res.status(400).json({ error: 'node parameter required' });
+  }
+
+  // Validate node name
+  const validNodes = ['master', 'slave1', 'slave2'];
+  if (!validNodes.includes(node.toLowerCase())) {
+    return res.status(400).json({ error: 'Invalid node. Must be: master, slave1, or slave2' });
+  }
+
+  const rebootTopic = `esp/reboot/${node.toLowerCase()}`;
+  const rebootCommand = 'REBOOT';
+  
+  // Publish reboot command to MQTT
+  mqttClient.publish(rebootTopic, rebootCommand);
+  
+  // Broadcast reboot notification to all connected clients
+  const rebootNotification = {
+    type: 'reboot',
+    node: node.toLowerCase(),
+    message: `🔄 Reboot command sent to ${node}`,
+    timestamp: new Date().toISOString()
+  };
+  io.emit('reboot_command', rebootNotification);
+  
+  // Enhanced logging
+  console.log(`\n🔄 ESP32 REBOOT COMMAND`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`📤 Published to MQTT:`);
+  console.log(`   Topic: ${rebootTopic}`);
+  console.log(`   Command: "${rebootCommand}"`);
+  console.log(`   Node: ${node.toUpperCase()}`);
+  console.log(`   Time: ${new Date().toLocaleTimeString()}`);
+  console.log(`✅ Reboot command sent successfully!`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+  res.json({ 
+    status: 'OK', 
+    node: node.toLowerCase(), 
+    message: `Reboot command sent to ${node}`,
+    topic: rebootTopic
+  });
 });
 
 // ===== History endpoint =====
