@@ -191,6 +191,36 @@ mqttClient.on('message', (topic, message) => {
     return;
   }
 
+  // Handle water level updates from ESP32
+  if (topic === 'home/sensors/water-level' || topic === 'device/water/level') {
+    let level = 50; // Default
+    
+    if (typeof data === 'object' && data.level !== undefined) {
+      level = Math.min(100, Math.max(0, parseInt(data.level) || 50));
+    } else if (typeof data === 'number') {
+      level = Math.min(100, Math.max(0, data));
+    } else if (typeof data === 'string') {
+      level = Math.min(100, Math.max(0, parseInt(data) || 50));
+    }
+    
+    console.log(`\n💧 WATER LEVEL UPDATE`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📡 Topic: ${topic}`);
+    console.log(`📊 Level: ${level}%`);
+    console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+    
+    // Broadcast water level to all clients
+    io.emit('water_level', {
+      level: level,
+      status: level > 80 ? 'full' : level > 40 ? 'half' : 'low',
+      timestamp: new Date().toISOString()
+    });
+    
+    latest[topic] = { level };
+    return;
+  }
+
   messageCount++;
   
   // Clean, professional logging

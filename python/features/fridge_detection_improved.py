@@ -57,12 +57,22 @@ except Exception as e:
 # ============= LOAD YOLO MODEL =============
 print("🤖 Loading YOLO model...")
 model = YOLO("yolov9c.pt")
-# Extended grocery list with common fridge items
+# YOLO COCO dataset class names - actual detectable items
+# Using exact YOLO class names for reliable detection
 grocery_list = [
-    "apple", "banana", "orange", "milk", "bread", "bottle", "wine glass", "cup", "bowl",
-    "egg", "eggs", "carrot", "tomato", "potato", "cheese", "yogurt", "butter", "lettuce",
-    "broccoli", "pepper", "onion", "garlic", "lemon", "lime", "strawberry", "blueberry"
+    # Fruits
+    "apple", "banana", "orange", "lemon", "lime", "strawberry", "blueberry",
+    # Vegetables
+    "carrot", "broccoli", "potato", "tomato", "onion", "pepper",
+    # Dairy & Food
+    "milk", "bread", "cheese", "bottle", "cup", "bowl",
+    # Specific for eggs - YOLO may detect as "egg" or similar
+    "egg"
 ]
+
+# Print available YOLO classes for debugging
+print(f"🎯 YOLO Model Classes: {len(model.names)} total")
+print(f"📋 Monitoring for: {', '.join(grocery_list)}")
 
 # ============= INVENTORY TRACKING =============
 grocery_counts = defaultdict(int)
@@ -257,13 +267,21 @@ def main():
                     confidence = float(box.conf[0])
                     if confidence > 0.5:  # Only process high-confidence detections
                         class_id = int(box.cls[0])
-                        class_name = model.names[class_id]
+                        class_name = model.names[class_id].lower()  # Convert to lowercase
                         
-                        if class_name in grocery_list:
-                            current_frame_detections[class_name].append({
+                        # Check if detected class matches any in grocery list (case-insensitive)
+                        matched_item = None
+                        for grocery_item in grocery_list:
+                            if class_name == grocery_item.lower() or grocery_item.lower() in class_name:
+                                matched_item = grocery_item
+                                break
+                        
+                        if matched_item:
+                            current_frame_detections[matched_item].append({
                                 'box': box,
                                 'confidence': confidence
                             })
+                            print(f"✅ Detected: {matched_item} (YOLO: {class_name}, conf: {confidence:.2f})")
             
             # Update inventory for detected items
             for item, detections in current_frame_detections.items():

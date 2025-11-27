@@ -617,6 +617,23 @@ function App() {
     return deviceStates[device] || false;
   };
 
+  const formatTime = (seconds) => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const getDeviceTimer = (device) => {
+    const timer = deviceTimers[device];
+    if (!timer) return null;
+    return {
+      duration: timer.duration,
+      isRunning: timer.isRunning,
+      formatted: formatTime(timer.duration)
+    };
+  };
+
   const espData = sensors["esp/sensors"] || {};
 
   return (
@@ -641,13 +658,44 @@ function App() {
           {/* Controls Section */}
           <div className="card shadow p-3 mb-3">
             <h5>🎛 Appliance Controls</h5>
-            <div className="control-item">Fan <label className="switch"><input type="checkbox" checked={getDeviceState("fan")} onChange={(e) => sendCommand("fan", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
-            <div className="control-item">Light <label className="switch"><input type="checkbox" checked={getDeviceState("light")} onChange={(e) => sendCommand("light", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
+            <div className="control-item">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
+                <div>
+                  <span>Fan</span>
+                  {getDeviceTimer("fan") && (
+                    <small style={{display: 'block', color: '#00d4ff', fontSize: '0.7rem', marginTop: '2px'}}>
+                      ⏱ {getDeviceTimer("fan").formatted}
+                    </small>
+                  )}
+                </div>
+                <label className="switch"><input type="checkbox" checked={getDeviceState("fan")} onChange={(e) => sendCommand("fan", e.target.checked ? "on" : "off")} /><span className="slider"></span></label>
+              </div>
+            </div>
+            <div className="control-item">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
+                <div>
+                  <span>Light</span>
+                  {getDeviceTimer("light") && (
+                    <small style={{display: 'block', color: '#00d4ff', fontSize: '0.7rem', marginTop: '2px'}}>
+                      ⏱ {getDeviceTimer("light").formatted}
+                    </small>
+                  )}
+                </div>
+                <label className="switch"><input type="checkbox" checked={getDeviceState("light")} onChange={(e) => sendCommand("light", e.target.checked ? "on" : "off")} /><span className="slider"></span></label>
+              </div>
+            </div>
             
             {/* Water Motor Control with Water Level Display */}
             <div className="control-item" style={{marginBottom: '8px', flexDirection: 'column', alignItems: 'flex-start'}}>
               <div className="d-flex justify-content-between align-items-center mb-1" style={{width: '100%'}}>
-                <span style={{fontSize: '0.9rem'}}>💧 Water Motor</span>
+                <div>
+                  <span style={{fontSize: '0.9rem'}}>💧 Water Motor</span>
+                  {getDeviceTimer("water-motor") && (
+                    <small style={{display: 'block', color: '#00d4ff', fontSize: '0.7rem', marginTop: '2px'}}>
+                      ⏱ {getDeviceTimer("water-motor").formatted}
+                    </small>
+                  )}
+                </div>
                 <label className="switch">
                   <input type="checkbox" checked={getDeviceState("water-motor")} onChange={(e) => sendCommand("water-motor", e.target.checked ? "on" : "off")} />
                   <span className="slider"></span>
