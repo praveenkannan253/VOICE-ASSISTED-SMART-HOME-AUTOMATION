@@ -6,7 +6,7 @@ Water Motor is now fully integrated with MQTT for real-time control!
 
 ## How It Works
 
-### System Flow
+### System Flow - Dashboard Control
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -28,7 +28,7 @@ Water Motor is now fully integrated with MQTT for real-time control!
                      ▼
 ┌─────────────────────────────────────────────────────┐
 │                   MQTT BROKER                       │
-│  Routes message to hardware                         │
+│  Routes message to hardware & other clients         │
 └────────────────────┬────────────────────────────────┘
                      │ MQTT Subscribe
                      │ Topic: home/sensors/water-motor
@@ -58,6 +58,47 @@ Water Motor is now fully integrated with MQTT for real-time control!
 │  Receives real-time update                          │
 │  Updates Water Motor button state                   │
 │  Displays water level indicator                     │
+└─────────────────────────────────────────────────────┘
+```
+
+### System Flow - External Control (Friend's App)
+
+```
+┌─────────────────────────────────────────────────────┐
+│              FRIEND'S APP / DEVICE                  │
+│  Sends motor command to MQTT                        │
+│  Message: "water-motor on"                          │
+└────────────────────┬────────────────────────────────┘
+                     │ MQTT Publish
+                     │ Topic: home/control
+                     │ Message: "water-motor on"
+                     ▼
+┌─────────────────────────────────────────────────────┐
+│                   MQTT BROKER                       │
+│  Routes message to all subscribers                  │
+└────────────────────┬────────────────────────────────┘
+                     │ MQTT Subscribe
+                     │ Topic: home/control
+                     ▼
+┌─────────────────────────────────────────────────────┐
+│                   BACKEND (Express)                 │
+│  Receives external command                          │
+│  Parses: "water-motor on"                           │
+│  Broadcasts to dashboard via Socket.IO              │
+│  Sends notification to users                        │
+└────────────────────┬────────────────────────────────┘
+                     │ Socket.IO Broadcast
+                     │ Event: device_state_change
+                     │ Data: { device: "water-motor", state: "on", source: "external" }
+                     │ Event: notification
+                     │ Message: "Water Motor turned ON by external command"
+                     ▼
+┌─────────────────────────────────────────────────────┐
+│                   FRONTEND (Dashboard)              │
+│  Receives real-time update                          │
+│  Updates Water Motor button state                   │
+│  Shows notification: "Motor turned ON by friend"    │
+│  No refresh needed!                                 │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -142,6 +183,59 @@ socket.on("device_state_change", (data) => {
 });
 ```
 
+## External Control (Friend's App)
+
+### How Your Friend Can Control the Motor
+
+Your friend can send motor commands directly to the MQTT broker using any MQTT client:
+
+```bash
+# Friend sends motor ON command
+mosquitto_pub -h broker-cn.emqx.io -t "home/control" -m "water-motor on"
+
+# Friend sends motor OFF command
+mosquitto_pub -h broker-cn.emqx.io -t "home/control" -m "water-motor off"
+```
+
+### What Happens on Your Dashboard
+
+When your friend sends a command:
+
+1. **Backend receives** the command on `home/control` topic
+2. **Backend parses** the command: "water-motor on/off"
+3. **Backend broadcasts** to all dashboard clients via Socket.IO
+4. **Dashboard updates** instantly:
+   - Water Motor button toggles
+   - Notification shows: "💧 Water Motor turned ON by external command"
+   - No page refresh needed!
+5. **All tabs sync** - if you have multiple tabs open, all update together
+
+### Console Logs When Friend Sends Command
+
+**Backend Console:**
+```
+👥 EXTERNAL MOTOR COMMAND RECEIVED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 Topic: home/control
+👤 Source: External (Friend's app/device)
+💧 Command: water-motor ON
+⚡ Action: 🟢 TURN ON
+⏰ Time: 8:45:30 PM
+📊 Connected clients: 2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Frontend Console:**
+```
+🔄 Device state change broadcast received: {
+  device: 'water-motor',
+  state: 'on',
+  source: 'external',
+  timestamp: '2025-11-27T20:45:30.000Z'
+}
+✅ Updated device state: { water-motor: true }
+```
+
 ## Testing
 
 ### Step 1: Start Backend
@@ -190,6 +284,29 @@ Watch backend console for:
 
 ### Step 5: Verify Frontend Update
 Dashboard button should update instantly (no refresh needed)!
+
+### Step 6: Test External Command (Friend's Control)
+In a new terminal, simulate your friend sending a command:
+
+```bash
+# Friend sends motor ON
+mosquitto_pub -h broker-cn.emqx.io -t "home/control" -m "water-motor on"
+```
+
+**Watch:**
+1. **Backend console** shows:
+   ```
+   👥 EXTERNAL MOTOR COMMAND RECEIVED
+   👤 Source: External (Friend's app/device)
+   💧 Command: water-motor ON
+   ```
+
+2. **Dashboard updates** instantly:
+   - Water Motor button toggles ON
+   - Notification appears: "💧 Water Motor turned ON by external command"
+   - All open tabs update together
+
+3. **No refresh needed** - real-time update!
 
 ## Console Logs
 
