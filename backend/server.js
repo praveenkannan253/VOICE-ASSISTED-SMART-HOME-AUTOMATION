@@ -664,15 +664,22 @@ app.get('/api/fridge/image/:filename', (req, res) => {
     const filename = req.params.filename;
     const filepath = path.join(uploadsDir, filename);
     
+    console.log(`📸 Image request: ${filename}`);
+    console.log(`📁 Full path: ${filepath}`);
+    console.log(`✅ Exists: ${fs.existsSync(filepath)}`);
+    
     // Security: prevent directory traversal
     if (!filepath.startsWith(uploadsDir)) {
+      console.log(`❌ Security check failed - path traversal attempt`);
       return res.status(403).json({ error: 'Forbidden' });
     }
     
     if (fs.existsSync(filepath)) {
+      console.log(`✅ Sending image: ${filename}`);
       res.sendFile(filepath);
     } else {
-      res.status(404).json({ error: 'Image not found' });
+      console.log(`❌ Image not found: ${filepath}`);
+      res.status(404).json({ error: 'Image not found', path: filepath });
     }
   } catch (err) {
     console.error('⚠️ Image retrieval error:', err);

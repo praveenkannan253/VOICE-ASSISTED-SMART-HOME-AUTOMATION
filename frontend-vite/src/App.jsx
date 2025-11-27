@@ -482,7 +482,10 @@ function App() {
         let changed = false;
         for (const device in updated) {
           if (updated[device].isRunning) {
-            updated[device].duration = Math.floor((new Date() - updated[device].startTime) / 1000);
+            // Calculate current session time + accumulated time
+            const sessionTime = Math.floor((new Date() - updated[device].startTime) / 1000);
+            const baseTime = updated[device].duration - (updated[device].totalDuration || 0);
+            updated[device].duration = baseTime + sessionTime;
             changed = true;
           }
         }
@@ -510,19 +513,29 @@ function App() {
     setDeviceTimers(prev => {
       const updated = { ...prev };
       if (isOn) {
-        // Device turned on - start timer
-        updated[device] = {
-          startTime: new Date(),
-          duration: 0,
-          isRunning: true
-        };
+        // Device turned on - resume or start timer
+        if (updated[device] && !updated[device].isRunning) {
+          // Resume: continue from where it stopped
+          updated[device].startTime = new Date();
+          updated[device].isRunning = true;
+          console.log(`⏱ ${device} resumed from ${updated[device].duration}s`);
+        } else {
+          // Start fresh timer
+          updated[device] = {
+            startTime: new Date(),
+            duration: 0,
+            isRunning: true,
+            totalDuration: 0 // Track total accumulated time
+          };
+        }
       } else {
-        // Device turned off - stop timer
+        // Device turned off - stop timer but keep accumulated time
         if (updated[device] && updated[device].isRunning) {
-          const duration = Math.floor((new Date() - updated[device].startTime) / 1000);
-          updated[device].duration = duration;
+          const sessionDuration = Math.floor((new Date() - updated[device].startTime) / 1000);
+          updated[device].duration += sessionDuration; // Add to accumulated time
+          updated[device].totalDuration = updated[device].duration;
           updated[device].isRunning = false;
-          console.log(`⏱ ${device} was on for ${duration}s`);
+          console.log(`⏱ ${device} stopped. Total: ${updated[device].duration}s`);
         }
       }
       return updated;
@@ -943,7 +956,7 @@ function App() {
                       </div>
                     ))}
                   </div>
-                  {fridgeInventory.length > 2 && (
+                  {fridgeInventory.length > 4 && (
                     <button 
                       className="btn btn-sm"
                       style={{
@@ -960,7 +973,7 @@ function App() {
                       }}
                       onClick={() => setShowAllFridgeItems(!showAllFridgeItems)}
                     >
-                      {showAllFridgeItems ? '📋 Show Less' : `📋 Show More (${fridgeInventory.length - 2})`}
+                      {showAllFridgeItems ? '📋 Show Less' : `📋 Show More (${fridgeInventory.length - 4})`}
                     </button>
                   )}
                 </>
