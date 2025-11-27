@@ -65,6 +65,9 @@ function App() {
     };
   });
   const [waterLevel, setWaterLevel] = useState(50); // 0-100%
+  const [showWaterLevel, setShowWaterLevel] = useState(false); // Show water level only on click
+  const [deviceTimers, setDeviceTimers] = useState({}); // Track on/off timings
+  const timerIntervalRef = useRef(null);
   const tempChartRef = useRef(null);
   const humChartRef = useRef(null);
   const tempCanvasRef = useRef(null);
@@ -471,6 +474,27 @@ function App() {
     }
   }, [sensors]);
 
+  // Update running timers every second
+  useEffect(() => {
+    timerIntervalRef.current = setInterval(() => {
+      setDeviceTimers(prev => {
+        const updated = { ...prev };
+        let changed = false;
+        for (const device in updated) {
+          if (updated[device].isRunning) {
+            updated[device].duration = Math.floor((new Date() - updated[device].startTime) / 1000);
+            changed = true;
+          }
+        }
+        return changed ? updated : prev;
+      });
+    }, 1000);
+    
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, []);
+
   const sendCommand = (device, action) => {
     console.log(`Sending command: ${device} -> ${action}`);
     // Update local state immediately for UI feedback
@@ -479,6 +503,28 @@ function App() {
       const updated = { ...prev, [device]: isOn };
       // Persist to localStorage
       localStorage.setItem('deviceStates', JSON.stringify(updated));
+      return updated;
+    });
+    
+    // Track timer for device on/off
+    setDeviceTimers(prev => {
+      const updated = { ...prev };
+      if (isOn) {
+        // Device turned on - start timer
+        updated[device] = {
+          startTime: new Date(),
+          duration: 0,
+          isRunning: true
+        };
+      } else {
+        // Device turned off - stop timer
+        if (updated[device] && updated[device].isRunning) {
+          const duration = Math.floor((new Date() - updated[device].startTime) / 1000);
+          updated[device].duration = duration;
+          updated[device].isRunning = false;
+          console.log(`⏱ ${device} was on for ${duration}s`);
+        }
+      }
       return updated;
     });
     
@@ -607,37 +653,26 @@ function App() {
                   <span className="slider"></span>
                 </label>
               </div>
-              <div className="water-level-container" style={{width: '100%'}}>
-                <div className="d-flex justify-content-between align-items-center" style={{marginBottom: '4px'}}>
-                  <small className="text-muted" style={{fontSize: '0.8rem'}}>Level</small>
-                  <small className="badge bg-info" style={{fontSize: '0.75rem'}}>{waterLevel}%</small>
-                </div>
-                <div className="progress" style={{height: '6px', marginBottom: '4px'}}>
-                  <div 
-                    className="progress-bar bg-info progress-bar-animated" 
-                    style={{width: `${waterLevel}%`}}
-                  ></div>
-                </div>
-                <small className="text-muted d-block" style={{fontSize: '0.75rem', textAlign: 'center'}}>
-                  {waterLevel > 80 ? '✅ Full' : waterLevel > 40 ? '⚠️ Half' : '🔴 Low'}
-                </small>
+              <div style={{marginBottom: '12px'}}>
+                <small style={{color: '#aaa', fontSize: '0.8rem', fontWeight: '600'}}>💧 Water Level</small>
                 <button
                   className="btn btn-sm"
                   style={{
                     width: '100%',
-                    marginTop: '6px',
+                    marginTop: '8px',
                     background: 'linear-gradient(135deg, #00d4ff 0%, #0099cc 100%)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    padding: '6px 8px',
-                    fontSize: '0.75rem',
+                    padding: '8px 12px',
+                    fontSize: '0.8rem',
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
                   onClick={() => {
-                    if (socket) {
+                    setShowWaterLevel(!showWaterLevel);
+                    if (!showWaterLevel && socket) {
                       socket.emit('mqtt_publish', {
                         topic: 'device/water',
                         message: 'check_level'
@@ -648,8 +683,36 @@ function App() {
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
-                  🔍 Check Water Level
+                  🔍 {showWaterLevel ? 'Hide' : 'Check'} Water Level
                 </button>
+                
+                {showWaterLevel && (
+                  <div style={{marginTop: '12px', padding: '10px', background: 'rgba(0, 212, 255, 0.1)', borderRadius: '6px', border: '1px solid rgba(0, 212, 255, 0.3)'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                      <div style={{flex: 1}}>
+                        <div style={{
+                          width: '100%',
+                          height: '24px',
+                          background: 'rgba(0, 212, 255, 0.2)',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(0, 212, 255, 0.5)'
+                        }}>
+                          <div style={{
+                            width: `${waterLevel}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #00d4ff 0%, #0099cc 100%)',
+                            transition: 'width 0.3s ease'
+                          }}></div>
+                        </div>
+                      </div>
+                      <span style={{fontSize: '0.9rem', color: '#00d4ff', fontWeight: '700', minWidth: '40px'}}>{waterLevel}%</span>
+                    </div>
+                    <small style={{fontSize: '0.75rem', textAlign: 'center', display: 'block', color: '#00d4ff'}}>
+                      {waterLevel > 80 ? '✅ Full' : waterLevel > 40 ? '⚠️ Half' : '🔴 Low'}
+                    </small>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -864,17 +927,41 @@ function App() {
           {/* Notifications Section */}
           <div className="card shadow p-3 mb-3">
             <h5>🔔 Notifications</h5>
-            <div id="notifications" style={{maxHeight: '200px', overflowY: 'auto'}}>
+            <div id="notifications" style={{maxHeight: '250px', overflowY: 'auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '8px'}}>
               {notifications.length > 0 ? (
                 notifications.map(notif => (
-                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`}>
-                    <span>[{notif.timestamp}] {notif.message}</span>
-                    <button onClick={() => removeNotification(notif.id)}>❌</button>
+                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`} style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    background: notif.type === 'warning' ? 'rgba(255, 193, 7, 0.1)' : 'rgba(76, 175, 80, 0.1)',
+                    border: `1px solid ${notif.type === 'warning' ? '#ffc107' : '#4caf50'}`,
+                    borderRadius: '6px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    color: '#fff',
+                    fontSize: '0.85rem'
+                  }}>
+                    <span style={{flex: 1, marginRight: '10px', wordBreak: 'break-word'}}>
+                      [{notif.timestamp}] {notif.message}
+                    </span>
+                    <button onClick={() => removeNotification(notif.id)} style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#e74c3c',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      padding: '0',
+                      minWidth: '24px',
+                      flexShrink: 0
+                    }}>
+                      ❌
+                    </button>
                   </div>
                 ))
               ) : (
-                <div className="text-center text-muted py-2">
-                  <small>No notifications</small>
+                <div className="text-center text-muted py-3">
+                  <small style={{color: '#aaa'}}>No notifications</small>
                 </div>
               )}
             </div>

@@ -57,7 +57,12 @@ except Exception as e:
 # ============= LOAD YOLO MODEL =============
 print("🤖 Loading YOLO model...")
 model = YOLO("yolov9c.pt")
-grocery_list = ["apple", "banana", "orange", "milk", "bread", "bottle", "wine glass", "cup", "bowl"]
+# Extended grocery list with common fridge items
+grocery_list = [
+    "apple", "banana", "orange", "milk", "bread", "bottle", "wine glass", "cup", "bowl",
+    "egg", "eggs", "carrot", "tomato", "potato", "cheese", "yogurt", "butter", "lettuce",
+    "broccoli", "pepper", "onion", "garlic", "lemon", "lime", "strawberry", "blueberry"
+]
 
 # ============= INVENTORY TRACKING =============
 grocery_counts = defaultdict(int)
