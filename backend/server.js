@@ -86,7 +86,7 @@ mqttClient.on('connect', () => {
   console.log('🔗 MQTT URL:', process.env.MQTT_URL || 'mqtt://broker-cn.emqx.io:1883');
   
   // Subscribe to sensor data and status updates from hardware
-  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor'], (err) => {
+  mqttClient.subscribe(['esp/sensors', 'esp/status', 'esp/#', 'fridge/inventory', 'esp/cam', 'home/sensors/water-motor', 'home/control'], (err) => {
     if (err) {
       console.error("❌ Subscription error:", err.message);
     } else {
@@ -97,6 +97,7 @@ mqttClient.on('connect', () => {
       console.log('   • fridge/inventory (Fridge updates)');
       console.log('   • esp/cam (Face recognition data)');
       console.log('   • home/sensors/water-motor (Water motor status)');
+      console.log('   • home/control (Motor control commands from external sources)');
     }
   });
 });
@@ -127,6 +128,44 @@ mqttClient.on('message', (topic, message) => {
     latest[topic] = data;
     io.emit('sensor_update', { topic, data });
     return;
+  }
+
+  // Handle incoming control commands from external sources (e.g., friend's app)
+  if (topic === 'home/control') {
+    const command = raw.toLowerCase();
+    
+    // Parse command: "water-motor on" or "water-motor off"
+    if (command.includes('water-motor')) {
+      const isOn = command.includes('on');
+      
+      console.log(`\n👥 EXTERNAL MOTOR COMMAND RECEIVED`);
+      console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+      console.log(`📡 Topic: ${topic}`);
+      console.log(`👤 Source: External (Friend's app/device)`);
+      console.log(`💧 Command: water-motor ${isOn ? 'ON' : 'OFF'}`);
+      console.log(`⚡ Action: ${isOn ? '🟢 TURN ON' : '🔴 TURN OFF'}`);
+      console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
+      console.log(`📊 Connected clients: ${io.engine.clientsCount}`);
+      console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+      
+      // Broadcast motor command to all dashboard clients
+      io.emit('device_state_change', {
+        device: 'water-motor',
+        state: isOn ? 'on' : 'off',
+        source: 'external',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Also broadcast as notification
+      io.emit('notification', {
+        type: 'info',
+        message: `💧 Water Motor turned ${isOn ? 'ON' : 'OFF'} by external command`,
+        timestamp: new Date().toISOString()
+      });
+      
+      latest[topic] = { command, state: isOn ? 'on' : 'off' };
+      return;
+    }
   }
 
   // Handle water motor status updates
