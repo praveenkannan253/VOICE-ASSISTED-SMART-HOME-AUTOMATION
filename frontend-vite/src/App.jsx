@@ -175,13 +175,19 @@ function App() {
       });
 
       socket.on("device_state_change", (data) => {
-        console.log("Device state change from another tab:", data);
+        console.log("🔄 Device state change broadcast received:", data);
         const isOn = data.state === 'on';
         setDeviceStates(prev => {
           const updated = { ...prev, [data.device]: isOn };
           localStorage.setItem('deviceStates', JSON.stringify(updated));
+          console.log("✅ Updated device state:", updated);
           return updated;
         });
+      });
+
+      // Listen for reconnection to re-register listeners
+      socket.on("reconnect", () => {
+        console.log("🔌 Socket reconnected, re-registering listeners");
       });
     }
 
@@ -193,6 +199,7 @@ function App() {
         socket.off("fridge_alert");
         socket.off("water_level");
         socket.off("device_state_change");
+        socket.off("reconnect");
       }
     };
   }, []);

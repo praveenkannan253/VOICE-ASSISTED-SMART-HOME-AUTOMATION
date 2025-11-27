@@ -199,6 +199,17 @@ async function handleFaceRecognition(data) {
   }
 }
 
+// ===== Socket.IO Connection Handler =====
+io.on('connection', (socket) => {
+  console.log(`\n🔌 New Socket.IO client connected: ${socket.id}`);
+  console.log(`📊 Total connected clients: ${io.engine.clientsCount}`);
+  
+  socket.on('disconnect', () => {
+    console.log(`\n❌ Socket.IO client disconnected: ${socket.id}`);
+    console.log(`📊 Total connected clients: ${io.engine.clientsCount}`);
+  });
+});
+
 // ===== Express routes =====
 app.get('/', (_req, res) => {
   res.send('SmartHome API running');
@@ -245,11 +256,13 @@ app.post('/api/control', (req, res) => {
   mqttClient.publish(controlTopic, command);
   
   // Broadcast device state change to all connected clients
-  io.emit('device_state_change', {
+  const stateChangeData = {
     device: device,
     state: action === 'on' ? 'on' : 'off',
     timestamp: new Date().toISOString()
-  });
+  };
+  console.log(`📡 Broadcasting device_state_change to all clients:`, stateChangeData);
+  io.emit('device_state_change', stateChangeData);
   
   // Enhanced logging for verification
   console.log(`\n🎮 DEVICE CONTROL COMMAND`);
