@@ -568,27 +568,27 @@ function App() {
             <div className="control-item">Light <label className="switch"><input type="checkbox" checked={getDeviceState("light")} onChange={(e) => sendCommand("light", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
             
             {/* Water Motor Control with Water Level Display */}
-            <div className="control-item mb-3">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span>💧 Water Motor Pump</span>
+            <div className="control-item" style={{marginBottom: '8px', flexDirection: 'column', alignItems: 'flex-start'}}>
+              <div className="d-flex justify-content-between align-items-center mb-1" style={{width: '100%'}}>
+                <span style={{fontSize: '0.9rem'}}>💧 Water Motor</span>
                 <label className="switch">
                   <input type="checkbox" checked={getDeviceState("water-motor")} onChange={(e) => sendCommand("water-motor", e.target.checked ? "on" : "off")} />
                   <span className="slider"></span>
                 </label>
               </div>
-              <div className="water-level-container">
-                <div className="d-flex justify-content-between align-items-center mb-1">
-                  <small className="text-muted">Water Level</small>
-                  <small className="badge bg-info">{waterLevel}%</small>
+              <div className="water-level-container" style={{width: '100%'}}>
+                <div className="d-flex justify-content-between align-items-center" style={{marginBottom: '4px'}}>
+                  <small className="text-muted" style={{fontSize: '0.8rem'}}>Level</small>
+                  <small className="badge bg-info" style={{fontSize: '0.75rem'}}>{waterLevel}%</small>
                 </div>
-                <div className="progress" style={{height: '8px'}}>
+                <div className="progress" style={{height: '6px', marginBottom: '4px'}}>
                   <div 
                     className="progress-bar bg-info progress-bar-animated" 
                     style={{width: `${waterLevel}%`}}
                   ></div>
                 </div>
-                <small className="text-muted d-block mt-1">
-                  {waterLevel > 80 ? '✅ Tank Full' : waterLevel > 40 ? '⚠️ Tank Half' : '🔴 Tank Low'}
+                <small className="text-muted d-block" style={{fontSize: '0.75rem', textAlign: 'center'}}>
+                  {waterLevel > 80 ? '✅ Full' : waterLevel > 40 ? '⚠️ Half' : '🔴 Low'}
                 </small>
               </div>
             </div>
