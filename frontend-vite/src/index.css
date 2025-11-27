@@ -1,0 +1,414 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: linear-gradient(135deg, #1f1c2c, #928dab);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #eee;
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar {
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.navbar-brand {
+  margin: auto;
+  font-weight: bold;
+  font-size: 1.6rem;
+  color: #f1c40f !important;
+}
+
+.card {
+  border-radius: 15px;
+  background: rgba(40, 40, 50, 0.75);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
+  color: #eee;
+}
+
+.card:hover { 
+  transform: translateY(-5px); 
+}
+
+/* Chart styling */
+canvas {
+  max-height: 300px !important;
+  display: block !important;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1.8fr;
+  gap: 15px;
+  height: 85vh;
+}
+
+.section { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 15px; 
+}
+
+.scrollable { 
+  overflow-y: auto; 
+  max-height: 100%; 
+}
+
+.switch { 
+  position: relative; 
+  display: inline-block; 
+  width: 55px; 
+  height: 28px; 
+}
+
+.switch input { 
+  opacity: 0; 
+  width: 0; 
+  height: 0; 
+}
+
+.slider {
+  position: absolute; 
+  cursor: pointer;
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0;
+  background-color: #555; 
+  transition: .4s; 
+  border-radius: 28px;
+}
+
+.slider:before {
+  position: absolute; 
+  content: "";
+  height: 22px; 
+  width: 22px; 
+  left: 3px; 
+  bottom: 3px;
+  background-color: white; 
+  transition: .4s; 
+  border-radius: 50%;
+}
+
+input:checked + .slider { 
+  background-color: #f1c40f; 
+}
+
+input:checked + .slider:before { 
+  transform: translateX(26px); 
+}
+
+.control-item { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin: 6px 0; 
+  font-weight: 500; 
+}
+
+.notification-item {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  padding: 6px 10px; 
+  border-bottom: 1px solid #666;
+}
+
+.notification-item button {
+  background: none; 
+  border: none; 
+  color: #e74c3c; 
+  font-size: 1rem; 
+  cursor: pointer;
+}
+
+/* Energy and Weather Card Animations */
+.pulse-icon {
+  display: inline-block;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.energy-card, .weather-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.energy-card:hover, .weather-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
+}
+
+.weather-temp {
+  font-size: 2.5rem;
+  font-weight: bold;
+  background: linear-gradient(45deg, #f39c12, #e74c3c);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: colorShift 3s ease-in-out infinite;
+}
+
+@keyframes colorShift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(20deg); }
+}
+
+.weather-icon-large {
+  font-size: 3rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.progress-bar-animated {
+  animation: progress-animation 2s ease-in-out infinite;
+}
+
+@keyframes progress-animation {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.stat-item {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  transition: background 0.3s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.weather-content {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  border-left: 3px solid #ffc107;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.voice-panel { 
+  text-align: center; 
+  padding: 10px; 
+}
+
+.voice-box {
+  background: rgba(241, 196, 15, 0.1);
+  border-radius: 10px; 
+  padding: 10px; 
+  font-size: 0.95rem; 
+  color: #f1c40f;
+}
+
+.quick-action { 
+  display: flex; 
+  justify-content: space-around; 
+  margin-top: 10px; 
+}
+
+.quick-action button {
+  background-color: #f1c40f; 
+  border: none; 
+  border-radius: 8px;
+  color: #111; 
+  padding: 8px 12px; 
+  cursor: pointer;
+  font-weight: 500; 
+  transition: 0.2s;
+}
+
+.quick-action button:hover { 
+  background-color: #d4ac0d; 
+}
+
+.weather-panel {
+  background: rgba(52, 73, 94, 0.6);
+  border-radius: 12px; 
+  padding: 10px; 
+  text-align: center;
+  color: #f39c12;
+}
+
+.btn {
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.2s;
+}
+
+.btn-warning {
+  background-color: #f1c40f;
+  color: #111;
+}
+
+.btn-warning:hover {
+  background-color: #d4ac0d;
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c0392b;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 10px;
+  }
+  
+  .section {
+    gap: 10px;
+  }
+  
+  .card {
+    margin-bottom: 10px;
+  }
+  
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+  
+  .control-item {
+    font-size: 14px;
+  }
+  
+  .switch {
+    width: 45px;
+    height: 24px;
+  }
+  
+  .slider:before {
+    height: 18px;
+    width: 18px;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+  
+  .quick-action {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .quick-action button {
+    width: 100%;
+    margin: 2px 0;
+  }
+  
+  .voice-panel {
+    padding: 8px;
+  }
+  
+  .voice-box {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  
+  .btn-sm {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container-fluid {
+    padding: 10px;
+  }
+  
+  .card {
+    padding: 12px;
+  }
+  
+  .navbar {
+    padding: 8px;
+  }
+  
+  .navbar-brand {
+    font-size: 1rem;
+  }
+  
+  .control-item {
+    font-size: 13px;
+  }
+  
+  .switch {
+    width: 40px;
+    height: 22px;
+  }
+  
+  .slider:before {
+    height: 16px;
+    width: 16px;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(17px);
+  }
+}
