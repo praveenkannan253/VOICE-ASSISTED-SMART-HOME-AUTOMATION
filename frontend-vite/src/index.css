@@ -166,11 +166,11 @@ input:checked + .slider:before {
   align-items: center;
   padding: 6px 10px; 
   border-bottom: 1px solid #666;
-  color: #fff;
+  color: #fff !important;
 }
 
 .notification-item span {
-  color: #fff;
+  color: #fff !important;
   font-weight: 500;
 }
 
@@ -180,6 +180,12 @@ input:checked + .slider:before {
   color: #e74c3c; 
   font-size: 1rem; 
   cursor: pointer;
+}
+
+/* Notifications empty message */
+#notifications .text-muted,
+#notifications .text-center {
+  color: #fff !important;
 }
 
 /* Energy and Weather Card Animations */
@@ -250,25 +256,37 @@ input:checked + .slider:before {
 
 /* Fridge Inventory Styling */
 .fridge-inventory {
-  color: #fff;
+  color: #fff !important;
+}
+
+.fridge-inventory p,
+.fridge-inventory span,
+.fridge-inventory small {
+  color: #fff !important;
 }
 
 .fridge-item {
-  color: #fff;
+  color: #fff !important;
 }
 
 .fridge-item span,
 .fridge-item small {
-  color: #fff;
+  color: #fff !important;
 }
 
 .fridge-item .text-capitalize {
-  color: #fff;
+  color: #fff !important;
   font-weight: 600;
 }
 
 .fridge-item .text-muted {
   color: #aaa !important;
+}
+
+/* Empty message styling */
+.fridge-inventory .text-muted,
+.fridge-inventory .text-center {
+  color: #fff !important;
 }
 
 .weather-content {
@@ -281,21 +299,34 @@ input:checked + .slider:before {
 }
 
 .weather-details {
-  color: #fff;
+  color: #fff !important;
 }
 
 .weather-details span,
 .weather-details strong {
-  color: #fff;
+  color: #fff !important;
   font-weight: 600;
 }
 
+.weather-details p {
+  color: #fff !important;
+}
+
 .weather-main p {
-  color: #fff;
+  color: #fff !important;
 }
 
 .weather-main .text-muted {
   color: #aaa !important;
+}
+
+.weather-card .text-muted {
+  color: #aaa !important;
+}
+
+/* Weather loading state */
+.weather-card .text-center {
+  color: #fff !important;
 }
 
 .alert-warning {
