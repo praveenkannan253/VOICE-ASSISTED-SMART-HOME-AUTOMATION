@@ -360,17 +360,38 @@ app.get('/api/sensors/history', async (req, res) => {
 app.get('/api/fridge/inventory', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT item, quantity, status, updated_at FROM fridge_items ORDER BY updated_at DESC'
+      'SELECT item, quantity, status, image_path, updated_at FROM fridge_items ORDER BY updated_at DESC'
     );
     
-    res.json({ 
-      inventory: rows.map(row => ({
+    // For each item, try to get the latest detected image from face_recognition table
+    const enrichedInventory = await Promise.all(rows.map(async (row) => {
+      let detectedImage = row.image_path;
+      
+      // If no stored image, try to get from face_recognition (detected items)
+      if (!detectedImage) {
+        try {
+          const [faceRows] = await pool.execute(
+            'SELECT image_path FROM face_recognition WHERE person_name = ? ORDER BY timestamp DESC LIMIT 1',
+            [row.item]
+          );
+          if (faceRows.length > 0 && faceRows[0].image_path) {
+            detectedImage = faceRows[0].image_path;
+          }
+        } catch (err) {
+          console.log(`No detected image for ${row.item}`);
+        }
+      }
+      
+      return {
         item: row.item,
         quantity: row.quantity,
         status: row.status,
+        image: detectedImage || null,
         updated_at: row.updated_at
-      }))
-    });
+      };
+    }));
+    
+    res.json({ inventory: enrichedInventory });
   } catch (err) {
     console.error('⚠️ Fridge inventory error:', err);
     res.status(500).json({ error: 'fridge_inventory_failed' });
