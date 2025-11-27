@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 
-function VoiceAssistant({ onCommand }) {
+function VoiceAssistant({ onCommand, recentDetections = [] }) {
   const [isListening, setIsListening] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const [lastCommand, setLastCommand] = useState('');
   const [isSupported, setIsSupported] = useState(false);
+
+  const getTimeAgo = (timestamp) => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const seconds = Math.floor((now - then) / 1000);
+
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  };
 
   useEffect(() => {
     // Check if speech recognition is supported
@@ -144,6 +155,42 @@ function VoiceAssistant({ onCommand }) {
           </small>
         </div>
       </div>
+
+      {/* Recent Face Detections */}
+      {recentDetections && recentDetections.length > 0 && (
+        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <h6 style={{ marginBottom: '8px', color: '#ddd' }}>🕐 Recent Detections</h6>
+          <div style={{
+            maxHeight: '200px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            {recentDetections.slice(0, 5).map((detection, index) => (
+              <div key={index} style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '8px',
+                background: detection.status === 'known' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(255, 152, 0, 0.15)',
+                borderLeft: `4px solid ${detection.status === 'known' ? '#4caf50' : '#ff9800'}`,
+                borderRadius: '4px',
+                fontSize: '12px'
+              }}>
+                <span style={{ marginRight: '8px', fontSize: '16px' }}>
+                  {detection.status === 'known' ? '✅' : '⚠️'}
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#fff', fontWeight: '600' }}>{detection.name}</div>
+                  <div style={{ color: '#aaa', fontSize: '11px' }}>
+                    {getTimeAgo(detection.timestamp)} • {(detection.confidence * 100).toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

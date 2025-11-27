@@ -67,6 +67,7 @@ function App() {
   const [waterLevel, setWaterLevel] = useState(50); // 0-100%
   const [showWaterLevel, setShowWaterLevel] = useState(false); // Show water level only on click
   const [deviceTimers, setDeviceTimers] = useState({}); // Track on/off timings
+  const [recentDetections, setRecentDetections] = useState([]); // Face detections for voice panel
   const timerIntervalRef = useRef(null);
   const tempChartRef = useRef(null);
   const humChartRef = useRef(null);
@@ -206,7 +207,7 @@ function App() {
             }
             return updated;
           });
-          addNotification(`🧊 Fridge detection: ${count} item(s) detected`, 'info');
+          addNotification(`Fridge detection: ${count} item(s) detected`, 'info');
         }
       });
 
@@ -600,10 +601,20 @@ function App() {
     }
   };
 
+  const getNotificationEmoji = (type) => {
+    switch(type) {
+      case 'warning': return '⚠️';
+      case 'error': return '❌';
+      case 'success': return '✅';
+      default: return 'ℹ️';
+    }
+  };
+
   const addNotification = (message, type = 'info') => {
+    const emoji = getNotificationEmoji(type);
     const notification = {
       id: Date.now(),
-      message,
+      message: `${emoji} ${message}`,
       type,
       timestamp: new Date().toLocaleTimeString()
     };
@@ -738,7 +749,7 @@ function App() {
                         topic: 'device/water',
                         message: 'check_level'
                       });
-                      addNotification('🔍 Checking water level...', 'info');
+                      addNotification('Checking water level...', 'info');
                     }
                   }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -800,7 +811,7 @@ function App() {
                         topic: 'device/boot',
                         message: 'master boot'
                       });
-                      addNotification('🔄 Master boot command sent', 'info');
+                      addNotification('Master boot command sent', 'info');
                     }
                   }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -827,7 +838,7 @@ function App() {
                         topic: 'device/boot',
                         message: 'slave_1 boot'
                       });
-                      addNotification('🔄 Slave 1 boot command sent', 'info');
+                      addNotification('Slave 1 boot command sent', 'info');
                     }
                   }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -854,7 +865,7 @@ function App() {
                         topic: 'device/boot',
                         message: 'slave_2 boot'
                       });
-                      addNotification('🔄 Slave 2 boot command sent', 'info');
+                      addNotification('Slave 2 boot command sent', 'info');
                     }
                   }}
                   onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
@@ -882,8 +893,8 @@ function App() {
             <div className="fridge-inventory">
               {fridgeInventory.length > 0 ? (
                 <>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '10px', marginBottom: '12px', padding: '0'}}>
-                    {(showAllFridgeItems ? fridgeInventory : fridgeInventory.slice(0, 4)).map((item, index) => (
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px', padding: '0'}}>
+                    {(showAllFridgeItems ? fridgeInventory : fridgeInventory.slice(0, 3)).map((item, index) => (
                       <div key={index} className="fridge-item" style={{
                         background: 'rgba(255,255,255,0.05)',
                         border: '1px solid rgba(255,255,255,0.1)',
@@ -956,7 +967,7 @@ function App() {
                       </div>
                     ))}
                   </div>
-                  {fridgeInventory.length > 4 && (
+                  {fridgeInventory.length > 3 && (
                     <button 
                       className="btn btn-sm"
                       style={{
@@ -973,7 +984,7 @@ function App() {
                       }}
                       onClick={() => setShowAllFridgeItems(!showAllFridgeItems)}
                     >
-                      {showAllFridgeItems ? '📋 Show Less' : `📋 Show More (${fridgeInventory.length - 4})`}
+                      {showAllFridgeItems ? '📋 Show Less' : `📋 Show More (${fridgeInventory.length - 3})`}
                     </button>
                   )}
                 </>
@@ -1073,10 +1084,10 @@ function App() {
           </div>
 
           {/* Face Recognition Panel */}
-          <FaceRecognitionPanel socket={socket} />
+          <FaceRecognitionPanel socket={socket} onRecentDetectionsChange={setRecentDetections} />
 
           {/* Voice Assistant */}
-          <VoiceAssistant onCommand={handleVoiceCommand} />
+          <VoiceAssistant onCommand={handleVoiceCommand} recentDetections={recentDetections} />
 
           {/* History Panel */}
           <HistoryPanel socket={socket} />

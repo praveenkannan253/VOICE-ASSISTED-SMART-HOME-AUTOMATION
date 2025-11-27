@@ -186,10 +186,13 @@
 }
 
 .known-persons-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   margin-top: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .known-person-card {
@@ -343,22 +346,26 @@
 }
 
 /* Scrollbar styling */
-.detections-list::-webkit-scrollbar {
+.detections-list::-webkit-scrollbar,
+.known-persons-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.detections-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.detections-list::-webkit-scrollbar-track,
+.known-persons-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
 }
 
-.detections-list::-webkit-scrollbar-thumb {
-  background: #888;
+.detections-list::-webkit-scrollbar-thumb,
+.known-persons-list::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.6);
   border-radius: 4px;
 }
 
-.detections-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.detections-list::-webkit-scrollbar-thumb:hover,
+.known-persons-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.9);
 }
 
 /* Responsive */

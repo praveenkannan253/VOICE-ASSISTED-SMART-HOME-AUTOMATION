@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './FaceRecognitionPanel.css';
 
-const FaceRecognitionPanel = ({ socket }) => {
+const FaceRecognitionPanel = ({ socket, onRecentDetectionsChange }) => {
   const [recentDetections, setRecentDetections] = useState([]);
   const [knownPersons, setKnownPersons] = useState([]);
   const [showAllPersons, setShowAllPersons] = useState(false);
@@ -13,6 +13,8 @@ const FaceRecognitionPanel = ({ socket }) => {
   });
   const [newPersonName, setNewPersonName] = useState('');
   const [latestDetection, setLatestDetection] = useState(null);
+  const [editingPersonId, setEditingPersonId] = useState(null);
+  const [editingPersonName, setEditingPersonName] = useState('');
   
   // Show only 3 persons by default, show all when toggled
   const displayedPersons = showAllPersons ? knownPersons : knownPersons.slice(0, 3);
@@ -42,7 +44,14 @@ const FaceRecognitionPanel = ({ socket }) => {
       setLatestDetection(data);
       
       // Add to recent detections
-      setRecentDetections(prev => [data, ...prev].slice(0, 10));
+      setRecentDetections(prev => {
+        const updated = [data, ...prev].slice(0, 10);
+        // Notify parent component
+        if (onRecentDetectionsChange) {
+          onRecentDetectionsChange(updated);
+        }
+        return updated;
+      });
       
       // Refresh data
       fetchKnownPersons();
@@ -59,13 +68,17 @@ const FaceRecognitionPanel = ({ socket }) => {
     return () => {
       socket.off('face_detected', handleFaceDetected);
     };
-  }, [socket]);
+  }, [socket, onRecentDetectionsChange]);
 
   const fetchRecentDetections = async () => {
     try {
       const response = await fetch('http://localhost:3000/api/face/recent?limit=10');
       const data = await response.json();
-      setRecentDetections(data.detections || []);
+      const detections = data.detections || [];
+      setRecentDetections(detections);
+      if (onRecentDetectionsChange) {
+        onRecentDetectionsChange(detections);
+      }
     } catch (error) {
       console.error('Error fetching recent detections:', error);
     }
@@ -111,6 +124,34 @@ const FaceRecognitionPanel = ({ socket }) => {
     } catch (error) {
       console.error('Error adding known person:', error);
       alert('❌ Failed to add person');
+    }
+  };
+
+  const updatePersonName = async (oldName) => {
+    if (!editingPersonName.trim() || editingPersonName === oldName) {
+      setEditingPersonId(null);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/api/face/update-person', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldName, newName: editingPersonName })
+      });
+
+      if (response.ok) {
+        setEditingPersonId(null);
+        setEditingPersonName('');
+        fetchKnownPersons();
+        fetchStats();
+        alert(`✅ Updated name to ${editingPersonName}`);
+      } else {
+        alert('❌ Failed to update person name');
+      }
+    } catch (error) {
+      console.error('Error updating person:', error);
+      alert('❌ Failed to update person');
     }
   };
 
@@ -202,10 +243,41 @@ const FaceRecognitionPanel = ({ socket }) => {
               {displayedPersons.map((person, index) => (
                 <div key={index} className="known-person-card">
                   <div className="person-avatar">
-                    {person.name.charAt(0).toUpperCase()}
+                    {(editingPersonId === person.name ? editingPersonName : person.name).charAt(0).toUpperCase()}
                   </div>
                   <div className="person-details">
-                    <h4>{person.name}</h4>
+                    {editingPersonId === person.name ? (
+                      <input
+                        type="text"
+                        value={editingPersonName}
+                        onChange={(e) => setEditingPersonName(e.target.value)}
+                        onBlur={() => updatePersonName(person.name)}
+                        onKeyPress={(e) => e.key === 'Enter' && updatePersonName(person.name)}
+                        autoFocus
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          border: '2px solid #667eea',
+                          color: '#fff',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          width: '100%',
+                          marginBottom: '4px'
+                        }}
+                      />
+                    ) : (
+                      <h4 
+                        onClick={() => {
+                          setEditingPersonId(person.name);
+                          setEditingPersonName(person.name);
+                        }}
+                        style={{ cursor: 'pointer', marginBottom: '2px' }}
+                        title="Click to edit"
+                      >
+                        {person.name} ✏️
+                      </h4>
+                    )}
                     <p className="person-visits">Visits: {person.visit_count}</p>
                     <p className="person-last-seen">
                       Last seen: {person.last_seen ? getTimeAgo(person.last_seen) : 'Never'}
@@ -226,34 +298,6 @@ const FaceRecognitionPanel = ({ socket }) => {
         </div>
       </div>
 
-      {/* Recent Detections */}
-      <div className="recent-detections-section">
-        <h3>🕐 Recent Detections</h3>
-        <div className="detections-list">
-          {recentDetections.length === 0 ? (
-            <p className="empty-message">No detections yet</p>
-          ) : (
-            recentDetections.map((detection, index) => (
-              <div key={index} className={`detection-item ${detection.status}`}>
-                <div className="detection-icon-small">
-                  {detection.status === 'known' ? '✅' : '⚠️'}
-                </div>
-                <div className="detection-content">
-                  <div className="detection-name">{detection.name}</div>
-                  <div className="detection-meta">
-                    <span className="detection-time">
-                      {getTimeAgo(detection.timestamp)}
-                    </span>
-                    <span className="detection-confidence-small">
-                      {(detection.confidence * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
     </div>
   );
 };
