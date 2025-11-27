@@ -73,6 +73,35 @@ function App() {
     console.log("Loading initial sensor data...");
     console.log("Backend URL:", window.location.origin.replace(':3001', ':3000'));
     
+    // Load device states from backend
+    fetch("/api/devices")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Device states from backend:", data);
+        if (data.devices) {
+          const states = {};
+          data.devices.forEach(device => {
+            states[device.name] = device.state === 'on';
+          });
+          setDeviceStates(states);
+          localStorage.setItem('deviceStates', JSON.stringify(states));
+          console.log("✅ Loaded device states from backend:", states);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading device states:", error);
+        // Fall back to localStorage if backend fails
+        const saved = localStorage.getItem('deviceStates');
+        if (saved) {
+          try {
+            setDeviceStates(JSON.parse(saved));
+            console.log("✅ Loaded device states from localStorage (backend unavailable)");
+          } catch (e) {
+            console.error('Error parsing saved device states:', e);
+          }
+        }
+      });
+    
     fetch("/api/sensors")
       .then((res) => {
         console.log("Sensor response status:", res.status);

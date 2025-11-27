@@ -128,7 +128,6 @@
     "worker-timers-worker": "^9.0.10",
     "ws": "^8.18.3"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
