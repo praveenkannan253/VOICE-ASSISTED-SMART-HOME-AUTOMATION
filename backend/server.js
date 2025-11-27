@@ -242,6 +242,11 @@ mqttClient.on('message', (topic, message) => {
   // broadcast to all connected clients
   io.emit('sensor_update', { topic, data });
 
+  // Handle fridge inventory data from Python detection script
+  if (topic === 'fridge/inventory' && typeof data === 'object') {
+    handleFridgeDetection(data);
+  }
+
   // Handle face recognition data from esp/cam
   if (topic === 'esp/cam' && typeof data === 'object') {
     handleFaceRecognition(data);
@@ -297,6 +302,42 @@ async function handleFaceRecognition(data) {
 
   } catch (err) {
     console.error('❌ Face recognition handler error:', err);
+  }
+}
+
+// ===== Fridge Detection Handler =====
+async function handleFridgeDetection(data) {
+  try {
+    const { items, timestamp } = data;
+    
+    console.log(`\n🧊 FRIDGE DETECTION UPDATE`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`📸 Detected Items: ${items ? items.length : 0}`);
+    console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
+    
+    if (items && Array.isArray(items)) {
+      for (const item of items) {
+        console.log(`   • ${item.name}: ${item.quantity} (${(item.confidence * 100).toFixed(1)}%)`);
+        
+        // Insert or update fridge item in database
+        await pool.execute(
+          'INSERT INTO fridge_items (item, quantity, status, updated_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE quantity = ?, updated_at = NOW()',
+          [item.name, item.quantity, 'detected', item.quantity]
+        );
+      }
+    }
+    
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+
+    // Broadcast to frontend
+    io.emit('fridge_detection', {
+      items: items || [],
+      timestamp: timestamp || new Date().toISOString(),
+      count: items ? items.length : 0
+    });
+
+  } catch (err) {
+    console.error('❌ Fridge detection handler error:', err);
   }
 }
 

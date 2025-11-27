@@ -176,6 +176,37 @@ function App() {
         addNotification(alert.message, 'warning');
       });
 
+      socket.on("fridge_detection", ({ items, count, timestamp }) => {
+        if (items && Array.isArray(items)) {
+          setFridgeInventory((prev) => {
+            const updated = [...prev];
+            for (const detectedItem of items) {
+              const itemLower = detectedItem.name.toLowerCase();
+              const existingIndex = updated.findIndex(p => p.item.toLowerCase() === itemLower);
+              
+              if (existingIndex >= 0) {
+                // Update existing item
+                updated[existingIndex] = {
+                  ...updated[existingIndex],
+                  quantity: detectedItem.quantity,
+                  updated_at: new Date().toISOString()
+                };
+              } else {
+                // Add new item
+                updated.push({
+                  item: detectedItem.name,
+                  quantity: detectedItem.quantity,
+                  status: 'detected',
+                  updated_at: new Date().toISOString()
+                });
+              }
+            }
+            return updated;
+          });
+          addNotification(`🧊 Fridge detection: ${count} item(s) detected`, 'info');
+        }
+      });
+
       socket.on("water_level", (data) => {
         console.log("Water level update:", data);
         setWaterLevel(data.level || 50);
