@@ -308,21 +308,37 @@ async function handleFaceRecognition(data) {
 // ===== Fridge Detection Handler =====
 async function handleFridgeDetection(data) {
   try {
-    const { items, timestamp } = data;
-    
     console.log(`\n🧊 FRIDGE DETECTION UPDATE`);
     console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-    console.log(`📸 Detected Items: ${items ? items.length : 0}`);
+    
+    let items = [];
+    
+    // Handle both batch format (items array) and single item format
+    if (data.items && Array.isArray(data.items)) {
+      // Batch format from Python script
+      items = data.items;
+    } else if (data.item && data.quantity !== undefined) {
+      // Single item format (legacy)
+      items = [{
+        name: data.item,
+        quantity: data.quantity,
+        confidence: 0.95
+      }];
+    }
+    
+    console.log(`📸 Detected Items: ${items.length}`);
     console.log(`⏰ Time: ${new Date().toLocaleTimeString()}`);
     
-    if (items && Array.isArray(items)) {
+    if (items && Array.isArray(items) && items.length > 0) {
       for (const item of items) {
-        console.log(`   • ${item.name}: ${item.quantity} (${(item.confidence * 100).toFixed(1)}%)`);
+        const itemName = item.name || item.item;
+        const quantity = item.quantity || 1;
+        console.log(`   • ${itemName}: ${quantity} (${item.confidence ? (item.confidence * 100).toFixed(1) : '95'}%)`);
         
         // Insert or update fridge item in database
         await pool.execute(
           'INSERT INTO fridge_items (item, quantity, status, updated_at) VALUES (?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE quantity = ?, updated_at = NOW()',
-          [item.name, item.quantity, 'detected', item.quantity]
+          [itemName, quantity, 'detected', quantity]
         );
       }
     }
@@ -332,7 +348,7 @@ async function handleFridgeDetection(data) {
     // Broadcast to frontend
     io.emit('fridge_detection', {
       items: items || [],
-      timestamp: timestamp || new Date().toISOString(),
+      timestamp: data.timestamp || new Date().toISOString(),
       count: items ? items.length : 0
     });
 

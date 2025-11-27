@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS fridge_items (
   item VARCHAR(100) NOT NULL,
   quantity INT NOT NULL DEFAULT 0,
   status VARCHAR(50) NOT NULL DEFAULT 'ok',
+  image_path VARCHAR(255),
+  image_url VARCHAR(255),
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY unique_item (item)
 );
