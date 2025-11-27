@@ -166,6 +166,12 @@ input:checked + .slider:before {
   align-items: center;
   padding: 6px 10px; 
   border-bottom: 1px solid #666;
+  color: #fff;
+}
+
+.notification-item span {
+  color: #fff;
+  font-weight: 500;
 }
 
 .notification-item button {
@@ -242,6 +248,29 @@ input:checked + .slider:before {
   background: rgba(255,255,255,0.1);
 }
 
+/* Fridge Inventory Styling */
+.fridge-inventory {
+  color: #fff;
+}
+
+.fridge-item {
+  color: #fff;
+}
+
+.fridge-item span,
+.fridge-item small {
+  color: #fff;
+}
+
+.fridge-item .text-capitalize {
+  color: #fff;
+  font-weight: 600;
+}
+
+.fridge-item .text-muted {
+  color: #aaa !important;
+}
+
 .weather-content {
   animation: fadeIn 0.5s ease-in;
 }
@@ -249,6 +278,24 @@ input:checked + .slider:before {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.weather-details {
+  color: #fff;
+}
+
+.weather-details span,
+.weather-details strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.weather-main p {
+  color: #fff;
+}
+
+.weather-main .text-muted {
+  color: #aaa !important;
 }
 
 .alert-warning {
