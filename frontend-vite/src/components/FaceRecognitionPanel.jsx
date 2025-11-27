@@ -4,6 +4,7 @@ import './FaceRecognitionPanel.css';
 const FaceRecognitionPanel = ({ socket }) => {
   const [recentDetections, setRecentDetections] = useState([]);
   const [knownPersons, setKnownPersons] = useState([]);
+  const [showAllPersons, setShowAllPersons] = useState(false);
   const [stats, setStats] = useState({
     total_known_persons: 0,
     total_detections: 0,
@@ -12,6 +13,9 @@ const FaceRecognitionPanel = ({ socket }) => {
   });
   const [newPersonName, setNewPersonName] = useState('');
   const [latestDetection, setLatestDetection] = useState(null);
+  
+  // Show only 3 persons by default, show all when toggled
+  const displayedPersons = showAllPersons ? knownPersons : knownPersons.slice(0, 3);
 
   // Fetch initial data
   useEffect(() => {
@@ -194,20 +198,30 @@ const FaceRecognitionPanel = ({ socket }) => {
           {knownPersons.length === 0 ? (
             <p className="empty-message">No known persons yet</p>
           ) : (
-            knownPersons.map((person, index) => (
-              <div key={index} className="known-person-card">
-                <div className="person-avatar">
-                  {person.name.charAt(0).toUpperCase()}
+            <>
+              {displayedPersons.map((person, index) => (
+                <div key={index} className="known-person-card">
+                  <div className="person-avatar">
+                    {person.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="person-details">
+                    <h4>{person.name}</h4>
+                    <p className="person-visits">Visits: {person.visit_count}</p>
+                    <p className="person-last-seen">
+                      Last seen: {person.last_seen ? getTimeAgo(person.last_seen) : 'Never'}
+                    </p>
+                  </div>
                 </div>
-                <div className="person-details">
-                  <h4>{person.name}</h4>
-                  <p className="person-visits">Visits: {person.visit_count}</p>
-                  <p className="person-last-seen">
-                    Last seen: {person.last_seen ? getTimeAgo(person.last_seen) : 'Never'}
-                  </p>
-                </div>
-              </div>
-            ))
+              ))}
+              {knownPersons.length > 3 && (
+                <button 
+                  className="see-more-btn"
+                  onClick={() => setShowAllPersons(!showAllPersons)}
+                >
+                  {showAllPersons ? '📋 Show Less' : `📋 See More (${knownPersons.length - 3})`}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
