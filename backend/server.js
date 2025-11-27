@@ -68,13 +68,6 @@ const mqttClient = mqtt.connect(MQTT_URL, {
 
 let latest = {}; // cache of latest sensor values
 
-// Device state tracker
-let deviceStates = {
-  'fan': false,
-  'light': false,
-  'water-motor': false
-};
-
 // Add error handling for MQTT connection
 mqttClient.on('error', (error) => {
   console.error('❌ MQTT Error:', error);
@@ -279,13 +272,14 @@ app.get('/api/sensors', (req, res) => {
 
 // Get device states
 app.get('/api/devices', (req, res) => {
-  const devices = Object.entries(deviceStates).map(([name, state]) => ({
-    name: name,
-    state: state ? 'on' : 'off'
-  }));
-  
-  console.log(`📋 Device states requested:`, devices);
-  res.json({ devices });
+  res.json({
+    devices: [
+      { name: 'fan', state: 'off' },
+      { name: 'light', state: 'off' },
+      { name: 'ac', state: 'off' },
+      { name: 'washing-machine', state: 'off' }
+    ]
+  });
 });
 
 app.post('/api/control', (req, res) => {
@@ -293,11 +287,6 @@ app.post('/api/control', (req, res) => {
   if (!device || !action) {
     return res.status(400).json({ error: 'device & action required' });
   }
-
-  // Update device state tracker
-  const isOn = action === 'on' || action === true;
-  deviceStates[device] = isOn;
-  console.log(`💾 Updated device state: ${device} -> ${isOn ? 'ON' : 'OFF'}`);
 
   // Single topic with command format: "device action"
   const controlTopic = 'home/control';
