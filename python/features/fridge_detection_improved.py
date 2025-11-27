@@ -7,18 +7,18 @@ import paho.mqtt.client as mqtt
 import json
 import time
 import os
-import requests
+import base64
 from pathlib import Path
 
 # ============= CONFIGURATION =============
 MQTT_BROKER = "broker-cn.emqx.io"
 MQTT_PORT = 1883
 MQTT_TOPIC = "fridge/inventory"
-BACKEND_URL = "http://localhost:3000"
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'uploads', 'fridge')
 
-# Create uploads directory if it doesn't exist
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# Create images directory for detected items
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), '..', '..', 'backend', 'uploads', 'fridge')
+os.makedirs(IMAGES_DIR, exist_ok=True)
+print(f"📁 Images will be saved to: {IMAGES_DIR}")
 
 # ============= DATABASE CONNECTION =============
 def connect_to_database():
@@ -37,9 +37,9 @@ def connect_to_database():
 # ============= MQTT CLIENT SETUP =============
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
-        print("✅ Connected to MQTT Broker")
+        print("✅ Connected to MQTT Broker for Fridge Detection")
     else:
-        print(f"❌ MQTT connection failed: {rc}")
+        print(f"❌ Failed to connect to MQTT, return code: {rc}")
 
 def on_disconnect(client, userdata, rc):
     print("🔌 Disconnected from MQTT Broker")
@@ -57,68 +57,79 @@ except Exception as e:
 # ============= LOAD YOLO MODEL =============
 print("🤖 Loading YOLO model...")
 model = YOLO("yolov9c.pt")
+grocery_list = ["apple", "banana", "orange", "milk", "bread", "bottle", "wine glass", "cup", "bowl"]
 
-# Grocery items to detect
-grocery_list = [
-    "apple", "banana", "orange", "milk", "bread", 
-    "bottle", "wine glass", "cup", "bowl", "egg",
-    "cheese", "carrot", "tomato", "potato", "onion"
-]
+# ============= INVENTORY TRACKING =============
+grocery_counts = defaultdict(int)
+detected_items = {}  # Track detected items with their images
+last_update_time = time.time()
+update_interval = 5  # Update every 5 seconds
 
-# ============= SAVE DETECTED IMAGE =============
-def save_detected_image(frame, item_name, detections):
-    """Save the detected frame with bounding boxes"""
+# ============= SAVE DETECTED ITEM IMAGE =============
+def save_detected_image(frame, item_name, box, confidence):
+    """
+    Extract and save the detected item image from the frame
+    Returns the filename if successful
+    """
     try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"fridge_{timestamp}_{item_name.replace(' ', '_')}.jpg"
-        filepath = os.path.join(UPLOAD_DIR, filename)
+        # Get bounding box coordinates
+        x1, y1, x2, y2 = map(int, box.xyxy[0])
         
-        # Draw detection boxes on frame
-        for detection in detections:
-            x1, y1, x2, y2 = detection['box']
-            label = detection['label']
-            conf = detection['confidence']
-            
-            # Draw rectangle
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-            # Draw label
-            text = f"{label} ({conf:.2f})"
-            cv2.putText(frame, text, (int(x1), int(y1) - 10),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        # Add padding to capture context
+        padding = 10
+        x1 = max(0, x1 - padding)
+        y1 = max(0, y1 - padding)
+        x2 = min(frame.shape[1], x2 + padding)
+        y2 = min(frame.shape[0], y2 + padding)
+        
+        # Extract the region
+        item_image = frame[y1:y2, x1:x2]
+        
+        if item_image.size == 0:
+            return None
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        filename = f"fridge_{item_name}_{timestamp}.jpg"
+        filepath = os.path.join(IMAGES_DIR, filename)
         
         # Save image
-        cv2.imwrite(filepath, frame)
-        print(f"📸 Saved image: {filename}")
+        cv2.imwrite(filepath, item_image)
+        print(f"📸 Saved image: {filename} ({confidence*100:.1f}%)")
+        
         return filename
     except Exception as e:
         print(f"❌ Error saving image: {e}")
         return None
 
 # ============= UPDATE INVENTORY WITH IMAGE =============
-def update_inventory_with_image(item_name, quantity, frame, detections):
-    """Update inventory and save detected image"""
+def update_inventory(item_name, quantity_change, image_filename=None):
+    """Update inventory in database and send MQTT message with image"""
     db = connect_to_database()
     if not db:
-        return
+        return False
     
     try:
-        # Save the detected image
-        image_filename = save_detected_image(frame, item_name, detections)
-        
         cursor = db.cursor()
         
         # Check if item exists
         cursor.execute("SELECT quantity FROM fridge_items WHERE item = %s", (item_name,))
         row = cursor.fetchone()
         
+        new_quantity = 0
+        is_new_item = False
+        
         if row:
-            new_quantity = max(0, row[0] + quantity)
+            # Update existing item
+            new_quantity = max(0, row[0] + quantity_change)
             cursor.execute(
-                "UPDATE fridge_items SET quantity = %s, status = %s, image_path = %s, updated_at = NOW() WHERE item = %s",
-                (new_quantity, "detected", image_filename, item_name)
+                "UPDATE fridge_items SET quantity = %s, image_path = %s, updated_at = NOW() WHERE item = %s",
+                (new_quantity, image_filename, item_name)
             )
         else:
-            new_quantity = max(0, quantity)
+            # Insert new item
+            is_new_item = True
+            new_quantity = max(0, quantity_change)
             cursor.execute(
                 "INSERT INTO fridge_items (item, quantity, status, image_path, updated_at) VALUES (%s, %s, %s, %s, NOW())",
                 (item_name, new_quantity, "detected", image_filename)
@@ -132,13 +143,69 @@ def update_inventory_with_image(item_name, quantity, frame, detections):
             "item": item_name,
             "quantity": new_quantity,
             "image_path": image_filename,
+            "is_new": is_new_item,
             "timestamp": datetime.now().isoformat(),
             "action": "detected"
         }
         
         mqtt_client.publish(MQTT_TOPIC, json.dumps(inventory_data))
-        print(f"✅ Updated {item_name}: {new_quantity} items | Image: {image_filename}")
         
+        if is_new_item:
+            print(f"🆕 NEW ITEM DETECTED: {item_name}")
+        else:
+            print(f"📦 Updated {item_name}: {new_quantity} items")
+        
+        return True
+        
+    except mysql.connector.Error as err:
+        print(f"❌ Database error: {err}")
+        return False
+    finally:
+        db.close()
+
+# ============= GET CURRENT INVENTORY =============
+def get_current_inventory():
+    """Get current inventory from database"""
+    db = connect_to_database()
+    if not db:
+        return {}
+    
+    try:
+        cursor = db.cursor()
+        cursor.execute("SELECT item, quantity FROM fridge_items")
+        inventory = {row[0]: row[1] for row in cursor.fetchall()}
+        cursor.close()
+        return inventory
+    except mysql.connector.Error as err:
+        print(f"❌ Database error: {err}")
+        return {}
+    finally:
+        db.close()
+
+# ============= INITIALIZE DATABASE TABLE =============
+def initialize_database():
+    """Initialize fridge_items table if it doesn't exist"""
+    db = connect_to_database()
+    if not db:
+        return
+    
+    try:
+        cursor = db.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS fridge_items (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                item VARCHAR(100) NOT NULL,
+                quantity INT NOT NULL DEFAULT 0,
+                status VARCHAR(50) NOT NULL DEFAULT 'ok',
+                image_path VARCHAR(255),
+                image_url VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_item (item)
+            )
+        """)
+        db.commit()
+        cursor.close()
+        print("✅ Database table initialized")
     except mysql.connector.Error as err:
         print(f"❌ Database error: {err}")
     finally:
@@ -146,101 +213,99 @@ def update_inventory_with_image(item_name, quantity, frame, detections):
 
 # ============= MAIN DETECTION LOOP =============
 def main():
-    print("🚀 Starting Smart Fridge Detection (Improved)...")
-    print(f"📁 Saving images to: {UPLOAD_DIR}")
-    print(f"🎯 Detecting: {', '.join(grocery_list)}")
+    """Main fridge detection loop"""
+    print("🚀 Starting Smart Fridge Object Detection...")
     
+    # Initialize database
+    initialize_database()
+    
+    # Open webcam
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("❌ Cannot open webcam")
+        print("❌ Error: Could not open webcam")
         return
     
     print("📹 Webcam opened successfully")
-    print("💡 Press 'q' to quit, 'r' to reset, 's' to save state")
+    print("🎯 Detecting groceries: " + ", ".join(grocery_list))
+    print("💡 Press 'q' to quit, 'r' to reset counts, 's' to save current state")
     
     frame_count = 0
-    detection_threshold = 5  # Process every 5th frame
-    detected_items = defaultdict(int)
-    last_detection_time = {}
-    detection_cooldown = 2  # seconds between detections of same item
+    detection_threshold = 5  # Process every 5th frame for performance
     
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("❌ Cannot read from webcam")
+            print("❌ Error: Could not read from webcam")
             break
         
         frame_count += 1
         
-        # Process every nth frame
+        # Process every nth frame for better performance
         if frame_count % detection_threshold == 0:
-            results = model(frame, verbose=False, conf=0.6)  # Higher confidence threshold
+            results = model(frame, verbose=False)
             
-            current_detections = defaultdict(list)
+            # Reset counts for this frame
+            current_frame_detections = defaultdict(list)
             
             for r in results:
                 for box in r.boxes:
                     confidence = float(box.conf[0])
-                    if confidence > 0.6:
+                    if confidence > 0.5:  # Only process high-confidence detections
                         class_id = int(box.cls[0])
-                        class_name = model.names[class_id].lower()
+                        class_name = model.names[class_id]
                         
-                        # Check if it's in our grocery list
-                        if any(item in class_name for item in grocery_list):
-                            # Find matching item
-                            matched_item = None
-                            for item in grocery_list:
-                                if item in class_name or class_name in item:
-                                    matched_item = item
-                                    break
-                            
-                            if matched_item:
-                                current_detections[matched_item].append({
-                                    'box': box.xyxy[0].cpu().numpy(),
-                                    'label': matched_item,
-                                    'confidence': confidence
-                                })
+                        if class_name in grocery_list:
+                            current_frame_detections[class_name].append({
+                                'box': box,
+                                'confidence': confidence
+                            })
             
             # Update inventory for detected items
-            current_time = time.time()
-            for item, detections in current_detections.items():
-                last_time = last_detection_time.get(item, 0)
-                
-                # Only update if cooldown has passed
-                if current_time - last_time > detection_cooldown:
-                    detected_items[item] += len(detections)
-                    update_inventory_with_image(item, len(detections), frame, detections)
-                    last_detection_time[item] = current_time
+            for item, detections in current_frame_detections.items():
+                if detections:
+                    # Save image of the first (best) detection
+                    best_detection = max(detections, key=lambda x: x['confidence'])
+                    image_filename = save_detected_image(
+                        frame, 
+                        item, 
+                        best_detection['box'],
+                        best_detection['confidence']
+                    )
+                    
+                    # Update inventory with image
+                    update_inventory(item, len(detections), image_filename)
+                    grocery_counts[item] += len(detections)
         
-        # Display frame with info
+        # Display current counts on frame
         y_offset = 30
-        cv2.putText(frame, "Smart Fridge Detection", (10, y_offset),
+        cv2.putText(frame, "Smart Fridge Detection", (10, y_offset), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         
-        y_offset += 30
-        for item, count in detected_items.items():
-            cv2.putText(frame, f"{item}: {count}", (10, y_offset),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        for item, count in grocery_counts.items():
             y_offset += 25
+            cv2.putText(frame, f"{item}: {count}", (10, y_offset), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
         
-        cv2.putText(frame, "Press 'q' to quit, 'r' to reset, 's' to save", 
-                   (10, frame.shape[0] - 20),
+        # Show instructions
+        cv2.putText(frame, "Press 'q' to quit, 'r' to reset, 's' to save", (10, frame.shape[0] - 20), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
         
-        cv2.imshow("Smart Fridge Detection", frame)
+        # Display frame
+        cv2.imshow("Smart Fridge Grocery Detection", frame)
         
         # Handle key presses
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
         elif key == ord('r'):
-            detected_items.clear()
-            last_detection_time.clear()
+            # Reset counts
+            grocery_counts.clear()
             print("🔄 Counts reset")
         elif key == ord('s'):
+            # Save current state to database
             print("💾 Saving current state...")
-            for item, count in detected_items.items():
-                print(f"   • {item}: {count}")
+            for item, count in grocery_counts.items():
+                update_inventory(item, 0)
             print("✅ State saved")
     
     # Cleanup

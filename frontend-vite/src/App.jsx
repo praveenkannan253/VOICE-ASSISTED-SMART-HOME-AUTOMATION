@@ -758,80 +758,69 @@ function App() {
             <div className="fridge-inventory">
               {fridgeInventory.length > 0 ? (
                 <>
-                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '12px', marginBottom: '12px'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '10px', marginBottom: '12px', padding: '0'}}>
                     {(showAllFridgeItems ? fridgeInventory : fridgeInventory.slice(0, 4)).map((item, index) => (
                       <div key={index} className="fridge-item" style={{
                         background: 'rgba(255,255,255,0.05)',
                         border: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: '8px',
-                        padding: '10px',
+                        padding: '8px',
                         textAlign: 'center',
                         transition: 'all 0.2s',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        minHeight: '160px'
+                        justifyContent: 'flex-start',
+                        minHeight: '150px',
+                        overflow: 'hidden'
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                       >
-                        {/* Display fridge item image if available */}
+                        {/* Display fridge item image - REAL DETECTED IMAGE */}
                         {item.image_path ? (
                           <img 
                             src={`http://localhost:3000/api/fridge/image/${item.image_path}`}
                             alt={item.item}
                             style={{
-                              width: '80px',
-                              height: '80px',
+                              width: '75px',
+                              height: '75px',
                               borderRadius: '6px',
                               objectFit: 'cover',
-                              border: '2px solid rgba(255,255,255,0.2)',
-                              marginBottom: '8px'
+                              border: '2px solid rgba(102, 126, 234, 0.5)',
+                              marginBottom: '6px',
+                              flexShrink: 0
                             }}
                             onError={(e) => {
-                              console.log(`Failed to load image for ${item.item}`);
-                              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23333" width="80" height="80"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="12" fill="%23999"%3E📦%3C/text%3E%3C/svg%3E';
+                              console.log(`Image load failed for ${item.item}, using placeholder`);
+                              e.target.style.display = 'none';
                             }}
                           />
-                        ) : (
-                          <div style={{
-                            width: '80px',
-                            height: '80px',
-                            borderRadius: '6px',
-                            background: 'rgba(255,255,255,0.1)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '32px',
-                            marginBottom: '8px'
-                          }}>
-                            📦
-                          </div>
-                        )}
-                        <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: '100%'}}>
+                        ) : null}
+                        
+                        <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: '100%', minHeight: '60px'}}>
                           <div>
-                            <span className="fw-bold text-capitalize" style={{fontSize: '0.85rem', color: '#fff', display: 'block', marginBottom: '4px'}}>{item.item}</span>
-                            <small style={{fontSize: '0.7rem', color: '#aaa', display: 'block'}}>
-                              {item.updated_at ? new Date(item.updated_at).toLocaleDateString() : 'N/A'}
+                            <span className="fw-bold text-capitalize" style={{fontSize: '0.8rem', color: '#fff', display: 'block', marginBottom: '2px', wordBreak: 'break-word'}}>{item.item}</span>
+                            <small style={{fontSize: '0.65rem', color: '#aaa', display: 'block'}}>
+                              {item.updated_at ? new Date(item.updated_at).toLocaleTimeString() : 'N/A'}
                             </small>
                           </div>
-                          <div style={{marginTop: '6px'}}>
-                            <span className="badge" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', fontSize: '0.75rem', marginBottom: '6px', display: 'block'}}>
-                              Qty: {item.quantity}
+                          <div style={{marginTop: '4px'}}>
+                            <span className="badge" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', fontSize: '0.7rem', marginBottom: '4px', display: 'block', padding: '2px 6px'}}>
+                              {item.quantity}
                             </span>
-                            <div className="btn-group btn-group-sm" style={{width: '100%', display: 'flex', gap: '2px'}}>
+                            <div className="btn-group btn-group-sm" style={{width: '100%', display: 'flex', gap: '1px'}}>
                               <button 
                                 className="btn btn-outline-success btn-sm"
-                                style={{padding: '2px 4px', fontSize: '0.7rem', flex: 1}}
+                                style={{padding: '1px 3px', fontSize: '0.65rem', flex: 1, minWidth: '20px'}}
                                 onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
                               >
                                 +
                               </button>
                               <button 
                                 className="btn btn-outline-danger btn-sm"
-                                style={{padding: '2px 4px', fontSize: '0.7rem', flex: 1}}
+                                style={{padding: '1px 3px', fontSize: '0.65rem', flex: 1, minWidth: '20px'}}
                                 onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
                                 disabled={item.quantity <= 0}
                               >
@@ -875,16 +864,16 @@ function App() {
           {/* Notifications Section */}
           <div className="card shadow p-3 mb-3">
             <h5>🔔 Notifications</h5>
-            <div id="notifications" style={{maxHeight: notifications.length > 0 ? 'auto' : '30px', overflowY: 'auto'}}>
+            <div id="notifications" style={{maxHeight: '200px', overflowY: 'auto'}}>
               {notifications.length > 0 ? (
                 notifications.map(notif => (
-                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`} style={{marginBottom: '6px', padding: '6px 8px'}}>
-                    <span style={{fontSize: '0.85rem'}}>[{notif.timestamp}] {notif.message}</span>
-                    <button onClick={() => removeNotification(notif.id)} style={{padding: '0 4px'}}>❌</button>
+                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`}>
+                    <span>[{notif.timestamp}] {notif.message}</span>
+                    <button onClick={() => removeNotification(notif.id)}>❌</button>
                   </div>
                 ))
               ) : (
-                <div className="text-center text-muted" style={{padding: '4px 0', fontSize: '0.85rem'}}>
+                <div className="text-center text-muted py-2">
                   <small>No notifications</small>
                 </div>
               )}
