@@ -875,16 +875,16 @@ function App() {
           {/* Notifications Section */}
           <div className="card shadow p-3 mb-3">
             <h5>🔔 Notifications</h5>
-            <div id="notifications" style={{maxHeight: '200px', overflowY: 'auto'}}>
+            <div id="notifications" style={{maxHeight: notifications.length > 0 ? 'auto' : '30px', overflowY: 'auto'}}>
               {notifications.length > 0 ? (
                 notifications.map(notif => (
-                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`}>
-                    <span>[{notif.timestamp}] {notif.message}</span>
-                    <button onClick={() => removeNotification(notif.id)}>❌</button>
+                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`} style={{marginBottom: '6px', padding: '6px 8px'}}>
+                    <span style={{fontSize: '0.85rem'}}>[{notif.timestamp}] {notif.message}</span>
+                    <button onClick={() => removeNotification(notif.id)} style={{padding: '0 4px'}}>❌</button>
                   </div>
                 ))
               ) : (
-                <div className="text-center text-muted py-2">
+                <div className="text-center text-muted" style={{padding: '4px 0', fontSize: '0.85rem'}}>
                   <small>No notifications</small>
                 </div>
               )}
