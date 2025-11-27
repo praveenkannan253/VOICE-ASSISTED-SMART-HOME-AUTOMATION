@@ -12,17 +12,10 @@ html, body, #root {
 }
 
 body {
-  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-  background-attachment: fixed;
+  background: linear-gradient(135deg, #1f1c2c, #928dab);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #eee;
   min-height: 100vh;
-  animation: bgShift 15s ease infinite;
-}
-
-@keyframes bgShift {
-  0%, 100% { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
-  50% { background: linear-gradient(135deg, #1f1c2c, #928dab, #302b63); }
 }
 
 #root {
@@ -31,62 +24,29 @@ body {
 }
 
 .navbar {
-  background: rgba(20, 20, 30, 0.9);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
-  border-bottom: 2px solid rgba(241, 196, 15, 0.3);
-  animation: slideDown 0.5s ease-out;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 
 .navbar-brand {
   margin: auto;
   font-weight: bold;
   font-size: 1.6rem;
-  background: linear-gradient(45deg, #f1c40f, #e74c3c, #3498db);
-  background-size: 300% 300%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradientShift 3s ease infinite;
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  color: #f1c40f !important;
 }
 
 .card {
   border-radius: 15px;
-  background: rgba(40, 40, 60, 0.85);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(40, 40, 50, 0.75);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  transition: transform 0.2s;
   color: #eee;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(20px);
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0);
-  }
 }
 
 .card:hover { 
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 48px rgba(241, 196, 15, 0.3);
-  border: 1px solid rgba(241, 196, 15, 0.5);
+  transform: translateY(-5px); 
 }
 
 /* Chart styling */
@@ -97,69 +57,49 @@ canvas {
 
 .chart-container {
   position: relative;
-  height: 250px;
+  height: 300px;
   width: 100%;
-  margin: 12px 0;
-  animation: slideInLeft 0.6s ease-out;
+  margin: 20px 0;
 }
 
-@keyframes slideInLeft {
-  from { 
-    opacity: 0; 
-    transform: translateX(-30px);
+/* Dashboard Grid - Masonry Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 15px;
+  width: 100%;
+  grid-auto-rows: max-content;
+}
+
+/* Make certain cards span wider */
+.dashboard-grid > .card:nth-child(1),
+.dashboard-grid > .card:nth-child(4) {
+  grid-column: span 1;
+}
+
+@media (min-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
-  to { 
-    opacity: 1; 
-    transform: translateX(0);
-  }
 }
 
-.container-fluid {
-  padding: 15px !important;
-  animation: fadeIn 0.8s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.row {
-  gap: 12px !important;
-}
-
-.col-lg-4 {
-  animation: slideInUp 0.6s ease-out;
-  animation-fill-mode: both;
-}
-
-.col-lg-4:nth-child(1) { animation-delay: 0.1s; }
-.col-lg-4:nth-child(2) { animation-delay: 0.2s; }
-.col-lg-4:nth-child(3) { animation-delay: 0.3s; }
-
-@keyframes slideInUp {
-  from { 
-    opacity: 0; 
-    transform: translateY(30px);
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0);
+@media (min-width: 1600px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
 .dashboard {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  height: auto;
-  min-height: 85vh;
+  grid-template-columns: 2fr 2fr 1.8fr;
+  gap: 15px;
+  height: 85vh;
 }
 
 .section { 
   display: flex; 
   flex-direction: column; 
-  gap: 12px; 
+  gap: 15px; 
 }
 
 .scrollable { 
@@ -216,47 +156,16 @@ input:checked + .slider:before {
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
-  margin: 8px 0; 
-  font-weight: 500;
-  padding: 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
-  animation: fadeInRight 0.5s ease-out;
-}
-
-@keyframes fadeInRight {
-  from { 
-    opacity: 0; 
-    transform: translateX(20px);
-  }
-  to { 
-    opacity: 1; 
-    transform: translateX(0);
-  }
-}
-
-.control-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateX(5px);
+  margin: 6px 0; 
+  font-weight: 500; 
 }
 
 .notification-item {
   display: flex; 
   justify-content: space-between; 
   align-items: center;
-  padding: 10px 12px; 
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.03);
-  transition: all 0.3s ease;
-  animation: slideInLeft 0.4s ease-out;
-}
-
-.notification-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateX(5px);
+  padding: 6px 10px; 
+  border-bottom: 1px solid #666;
 }
 
 .notification-item button {
@@ -265,13 +174,6 @@ input:checked + .slider:before {
   color: #e74c3c; 
   font-size: 1rem; 
   cursor: pointer;
-  transition: all 0.2s ease;
-  opacity: 0.7;
-}
-
-.notification-item button:hover {
-  opacity: 1;
-  transform: scale(1.2);
 }
 
 /* Energy and Weather Card Animations */
@@ -329,78 +231,15 @@ input:checked + .slider:before {
   100% { opacity: 0.7; }
 }
 
-/* Fridge Item Styling */
-.fridge-item {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: slideInUp 0.5s ease-out;
-}
-
-.fridge-item:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 16px rgba(241, 196, 15, 0.2);
-  border: 1px solid rgba(241, 196, 15, 0.3) !important;
-}
-
-.fridge-item img {
-  transition: all 0.3s ease;
-  animation: zoomIn 0.5s ease-out;
-}
-
-@keyframes zoomIn {
-  from { 
-    opacity: 0; 
-    transform: scale(0.8);
-  }
-  to { 
-    opacity: 1; 
-    transform: scale(1);
-  }
-}
-
-.fridge-item img:hover {
-  transform: scale(1.1);
-  filter: brightness(1.2);
-}
-
-.fridge-inventory {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.fridge-inventory::-webkit-scrollbar {
-  width: 6px;
-}
-
-.fridge-inventory::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-
-.fridge-inventory::-webkit-scrollbar-thumb {
-  background: rgba(241, 196, 15, 0.5);
-  border-radius: 10px;
-  transition: background 0.3s ease;
-}
-
-.fridge-inventory::-webkit-scrollbar-thumb:hover {
-  background: rgba(241, 196, 15, 0.8);
-}
-
 .stat-item {
-  padding: 12px;
+  padding: 10px;
   border-radius: 8px;
   background: rgba(255,255,255,0.05);
-  transition: all 0.3s ease;
-  animation: fadeInUp 0.5s ease-out;
+  transition: background 0.3s ease;
 }
 
 .stat-item:hover {
   background: rgba(255,255,255,0.1);
-  transform: translateY(-2px);
 }
 
 .weather-content {

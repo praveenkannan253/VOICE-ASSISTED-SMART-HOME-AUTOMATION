@@ -548,147 +548,144 @@ function App() {
       </nav>
 
       <div className="container-fluid mt-3">
-        <div className="row g-3">
-          {/* Left Column - Charts & Face Recognition */}
-          <div className="col-lg-4">
-            <div className="card shadow p-2 mb-2">
-              <h5 style={{marginBottom: '8px', fontSize: '0.95rem'}}>📊 Sensor Charts</h5>
-              <div style={{height: '120px', position: 'relative'}}>
-                <canvas ref={tempCanvasRef}></canvas>
-              </div>
-              <div style={{height: '120px', position: 'relative'}} className="mt-1">
-                <canvas ref={humCanvasRef}></canvas>
-              </div>
+        <div className="dashboard-grid">
+          {/* Charts Section */}
+          <div className="card shadow p-3 mb-3">
+            <h5>📊 Real-time Sensor Charts</h5>
+            <div style={{height: '150px', position: 'relative'}}>
+              <canvas ref={tempCanvasRef}></canvas>
             </div>
-
-            {/* Face Recognition Panel */}
-            <FaceRecognitionPanel socket={socket} />
+            <div style={{height: '150px', position: 'relative'}} className="mt-2">
+              <canvas ref={humCanvasRef}></canvas>
+            </div>
           </div>
 
-          {/* Middle Column - Controls & Sensors */}
-          <div className="col-lg-4">
-            <div className="card shadow p-2 mb-2">
-              <h5 style={{marginBottom: '10px', fontSize: '0.95rem'}}>🎛 Controls</h5>
-              <div className="control-item" style={{margin: '4px 0'}}>Fan <label className="switch"><input type="checkbox" checked={getDeviceState("fan")} onChange={(e) => sendCommand("fan", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
-              <div className="control-item" style={{margin: '4px 0'}}>Light <label className="switch"><input type="checkbox" checked={getDeviceState("light")} onChange={(e) => sendCommand("light", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
-              
-              {/* Water Motor Control with Water Level Display */}
-              <div className="control-item" style={{margin: '4px 0', flexDirection: 'column', alignItems: 'flex-start'}}>
-                <div className="d-flex justify-content-between align-items-center mb-1" style={{width: '100%'}}>
-                  <span style={{fontSize: '0.9rem'}}>💧 Water Motor</span>
-                  <label className="switch">
-                    <input type="checkbox" checked={getDeviceState("water-motor")} onChange={(e) => sendCommand("water-motor", e.target.checked ? "on" : "off")} />
-                    <span className="slider"></span>
-                  </label>
-                </div>
-                <div className="water-level-container" style={{width: '100%'}}>
-                  <div className="d-flex justify-content-between align-items-center mb-1">
-                    <small className="text-muted" style={{fontSize: '0.8rem'}}>Level</small>
-                    <small className="badge bg-info" style={{fontSize: '0.75rem'}}>{waterLevel}%</small>
-                  </div>
-                  <div className="progress" style={{height: '6px'}}>
-                    <div 
-                      className="progress-bar bg-info progress-bar-animated" 
-                      style={{width: `${waterLevel}%`}}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card shadow p-2 mb-2">
-              <h5 style={{marginBottom: '8px', fontSize: '0.95rem'}}>📡 Sensors</h5>
-              <p style={{margin: '4px 0', fontSize: '0.9rem'}}>🌡 {espData.temp ?? "--"}°C</p>
-              <p style={{margin: '4px 0', fontSize: '0.9rem'}}>💧 {espData.hum ?? "--"}%</p>
-              <p style={{margin: '4px 0', fontSize: '0.9rem'}}>💡 {espData.ldr ?? "--"}</p>
-              <p style={{margin: '4px 0', fontSize: '0.9rem'}}>🚶 {espData.pir === 1 ? "Motion" : "Idle"}</p>
-            </div>
-
-            <VoiceAssistant onCommand={handleVoiceCommand} />
+          {/* Controls Section */}
+          <div className="card shadow p-3 mb-3">
+            <h5>🎛 Appliance Controls</h5>
+            <div className="control-item">Fan <label className="switch"><input type="checkbox" checked={getDeviceState("fan")} onChange={(e) => sendCommand("fan", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
+            <div className="control-item">Light <label className="switch"><input type="checkbox" checked={getDeviceState("light")} onChange={(e) => sendCommand("light", e.target.checked ? "on" : "off")} /><span className="slider"></span></label></div>
             
-            <HistoryPanel socket={socket} />
+            {/* Water Motor Control with Water Level Display */}
+            <div className="control-item mb-3">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span>💧 Water Motor Pump</span>
+                <label className="switch">
+                  <input type="checkbox" checked={getDeviceState("water-motor")} onChange={(e) => sendCommand("water-motor", e.target.checked ? "on" : "off")} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+              <div className="water-level-container">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <small className="text-muted">Water Level</small>
+                  <small className="badge bg-info">{waterLevel}%</small>
+                </div>
+                <div className="progress" style={{height: '8px'}}>
+                  <div 
+                    className="progress-bar bg-info progress-bar-animated" 
+                    style={{width: `${waterLevel}%`}}
+                  ></div>
+                </div>
+                <small className="text-muted d-block mt-1">
+                  {waterLevel > 80 ? '✅ Tank Full' : waterLevel > 40 ? '⚠️ Tank Half' : '🔴 Tank Low'}
+                </small>
+              </div>
+            </div>
           </div>
 
-          {/* Right Column - Fridge, Notifications, Weather */}
-          <div className="col-lg-4">
-            <div className="card shadow p-2 mb-2">
-              <h5 style={{marginBottom: '8px', fontSize: '0.95rem'}}>🧊 Fridge</h5>
-              <div className="fridge-inventory">
-                {fridgeInventory.length > 0 ? (
-                  fridgeInventory.map((item, index) => (
-                    <div key={index} className="fridge-item d-flex justify-content-between align-items-center mb-1 p-1">
-                      <div className="d-flex align-items-center" style={{flex: 1, minWidth: 0}}>
-                        {item.image ? (
-                          <img 
-                            src={item.image} 
-                            alt={item.item}
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '6px',
-                              marginRight: '8px',
-                              objectFit: 'cover',
-                              border: '1px solid rgba(255,255,255,0.2)'
-                            }}
-                            onError={(e) => { e.target.style.display = 'none'; }}
-                          />
-                        ) : null}
-                        <div style={{minWidth: 0}}>
-                          <span className="fw-bold text-capitalize" style={{fontSize: '0.85rem'}}>{item.item}</span>
-                          <small className="text-muted d-block" style={{fontSize: '0.75rem'}}>
-                            {new Date(item.updated_at).toLocaleTimeString()}
-                          </small>
-                        </div>
-                      </div>
-                      <div className="d-flex align-items-center" style={{gap: '4px'}}>
-                        <span className="badge bg-primary" style={{fontSize: '0.75rem'}}>{item.quantity}</span>
-                        <div className="btn-group btn-group-sm">
-                          <button 
-                            className="btn btn-outline-success btn-sm"
-                            style={{padding: '2px 4px', fontSize: '0.75rem'}}
-                            onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
-                          >
-                            +
-                          </button>
-                          <button 
-                            className="btn btn-outline-danger btn-sm"
-                            style={{padding: '2px 4px', fontSize: '0.75rem'}}
-                            onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
-                            disabled={item.quantity <= 0}
-                          >
-                            -
-                          </button>
-                        </div>
+          {/* Sensors Section */}
+          <div className="card shadow p-3 mb-3">
+            <h5>📡 Live Sensor Data</h5>
+            <p>🌡 Temp: {espData.temp ?? "--"} °C</p>
+            <p>💧 Humidity: {espData.hum ?? "--"} %</p>
+            <p>💡 LDR: {espData.ldr ?? "--"}</p>
+            <p>🚶 PIR: {espData.pir === 1 ? "Motion Detected" : "No Motion"}</p>
+            <p>📡 IR: {espData.ir ?? "--"}</p>
+          </div>
+
+          {/* Fridge Section */}
+          <div className="card shadow p-3 mb-3">
+            <h5>🧊 Refrigerator Monitoring</h5>
+            <div className="fridge-inventory">
+              {fridgeInventory.length > 0 ? (
+                fridgeInventory.map((item, index) => (
+                  <div key={index} className="fridge-item d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                    <div className="d-flex align-items-center" style={{flex: 1}}>
+                      {/* Display fridge item image if available */}
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.item}
+                          style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '8px',
+                            marginRight: '12px',
+                            objectFit: 'cover',
+                            border: '2px solid #ddd'
+                          }}
+                          onError={(e) => {
+                            console.log(`Failed to load image for ${item.item}`);
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                      <div>
+                        <span className="fw-bold text-capitalize">{item.item}</span>
+                        <small className="text-muted d-block">
+                          {new Date(item.updated_at).toLocaleTimeString()}
+                        </small>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center text-muted py-1">
-                    <p className="mb-0" style={{fontSize: '0.85rem'}}>🔍 No items</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="card shadow p-2 mb-2">
-              <h5 style={{marginBottom: '8px', fontSize: '0.95rem'}}>🔔 Notifications</h5>
-              <div id="notifications" style={{maxHeight: '150px', overflowY: 'auto'}}>
-                {notifications.length > 0 ? (
-                  notifications.map(notif => (
-                    <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`} style={{padding: '6px 8px', fontSize: '0.85rem'}}>
-                      <span>{notif.message}</span>
-                      <button onClick={() => removeNotification(notif.id)}>❌</button>
+                    <div className="d-flex align-items-center">
+                      <span className="badge bg-primary me-2">{item.quantity}</span>
+                      <div className="btn-group btn-group-sm">
+                        <button 
+                          className="btn btn-outline-success btn-sm"
+                          onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
+                        >
+                          +
+                        </button>
+                        <button 
+                          className="btn btn-outline-danger btn-sm"
+                          onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
+                          disabled={item.quantity <= 0}
+                        >
+                          -
+                        </button>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center text-muted py-1">
-                    <small style={{fontSize: '0.8rem'}}>No notifications</small>
                   </div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="text-center text-muted py-2">
+                  <p className="mb-0">🔍 No items detected</p>
+                </div>
+              )}
             </div>
+          </div>
 
-            <div className="card shadow p-2 weather-card">
+          {/* Notifications Section */}
+          <div className="card shadow p-3 mb-3">
+            <h5>🔔 Notifications</h5>
+            <div id="notifications" style={{maxHeight: '200px', overflowY: 'auto'}}>
+              {notifications.length > 0 ? (
+                notifications.map(notif => (
+                  <div key={notif.id} className={`notification-item ${notif.type === 'warning' ? 'alert-warning' : ''}`}>
+                    <span>[{notif.timestamp}] {notif.message}</span>
+                    <button onClick={() => removeNotification(notif.id)}>❌</button>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted py-2">
+                  <small>No notifications</small>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Weather Section */}
+          <div className="card shadow p-3 weather-card">
               <h5 className="mb-3">
                 <span className="pulse-icon">🌤</span> Live Weather
               </h5>
@@ -731,6 +728,15 @@ function App() {
               )}
             </div>
           </div>
+
+          {/* Face Recognition Panel */}
+          <FaceRecognitionPanel socket={socket} />
+
+          {/* Voice Assistant */}
+          <VoiceAssistant onCommand={handleVoiceCommand} />
+
+          {/* History Panel */}
+          <HistoryPanel socket={socket} />
         </div>
       </div>
     </>
