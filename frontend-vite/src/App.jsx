@@ -45,6 +45,7 @@ setTimeout(initSocket, 100);
 function App() {
   const [sensors, setSensors] = useState({});
   const [fridgeInventory, setFridgeInventory] = useState([]);
+  const [showAllFridgeItems, setShowAllFridgeItems] = useState(false);
   const [weather, setWeather] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [deviceStates, setDeviceStates] = useState(() => {
@@ -608,55 +609,79 @@ function App() {
             <h5>🧊 Refrigerator Monitoring</h5>
             <div className="fridge-inventory">
               {fridgeInventory.length > 0 ? (
-                fridgeInventory.map((item, index) => (
-                  <div key={index} className="fridge-item d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                    <div className="d-flex align-items-center" style={{flex: 1}}>
-                      {/* Display fridge item image if available */}
-                      {item.image ? (
-                        <img 
-                          src={item.image} 
-                          alt={item.item}
-                          style={{
-                            width: '60px',
-                            height: '60px',
-                            borderRadius: '8px',
-                            marginRight: '12px',
-                            objectFit: 'cover',
-                            border: '2px solid #ddd'
-                          }}
-                          onError={(e) => {
-                            console.log(`Failed to load image for ${item.item}`);
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      ) : null}
-                      <div>
-                        <span className="fw-bold text-capitalize">{item.item}</span>
-                        <small className="text-muted d-block">
-                          {new Date(item.updated_at).toLocaleTimeString()}
-                        </small>
+                <>
+                  {(showAllFridgeItems ? fridgeInventory : fridgeInventory.slice(0, 2)).map((item, index) => (
+                    <div key={index} className="fridge-item d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                      <div className="d-flex align-items-center" style={{flex: 1}}>
+                        {/* Display fridge item image if available */}
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.item}
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              borderRadius: '6px',
+                              marginRight: '10px',
+                              objectFit: 'cover',
+                              border: '2px solid #ddd'
+                            }}
+                            onError={(e) => {
+                              console.log(`Failed to load image for ${item.item}`);
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        ) : null}
+                        <div>
+                          <span className="fw-bold text-capitalize" style={{fontSize: '0.9rem'}}>{item.item}</span>
+                          <small className="text-muted d-block" style={{fontSize: '0.8rem'}}>
+                            {new Date(item.updated_at).toLocaleTimeString()}
+                          </small>
+                        </div>
+                      </div>
+                      <div className="d-flex align-items-center" style={{gap: '6px'}}>
+                        <span className="badge bg-primary" style={{fontSize: '0.75rem'}}>{item.quantity}</span>
+                        <div className="btn-group btn-group-sm">
+                          <button 
+                            className="btn btn-outline-success btn-sm"
+                            style={{padding: '2px 6px', fontSize: '0.75rem'}}
+                            onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
+                          >
+                            +
+                          </button>
+                          <button 
+                            className="btn btn-outline-danger btn-sm"
+                            style={{padding: '2px 6px', fontSize: '0.75rem'}}
+                            onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
+                            disabled={item.quantity <= 0}
+                          >
+                            -
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="d-flex align-items-center">
-                      <span className="badge bg-primary me-2">{item.quantity}</span>
-                      <div className="btn-group btn-group-sm">
-                        <button 
-                          className="btn btn-outline-success btn-sm"
-                          onClick={() => updateFridgeItem(item.item, item.quantity, 'add')}
-                        >
-                          +
-                        </button>
-                        <button 
-                          className="btn btn-outline-danger btn-sm"
-                          onClick={() => updateFridgeItem(item.item, item.quantity, 'remove')}
-                          disabled={item.quantity <= 0}
-                        >
-                          -
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                  ))}
+                  {fridgeInventory.length > 2 && (
+                    <button 
+                      className="btn btn-sm"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        marginTop: '8px'
+                      }}
+                      onClick={() => setShowAllFridgeItems(!showAllFridgeItems)}
+                    >
+                      {showAllFridgeItems ? '📋 Show Less' : `📋 Show More (${fridgeInventory.length - 2})`}
+                    </button>
+                  )}
+                </>
               ) : (
                 <div className="text-center text-muted py-2">
                   <p className="mb-0">🔍 No items detected</p>
