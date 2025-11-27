@@ -694,36 +694,6 @@ function App() {
               </div>
             </div>
 
-            <div className="card shadow p-3 mb-3 energy-card">
-              <h5 className="mb-3">
-                <span className="pulse-icon">⚡</span> Energy Usage
-              </h5>
-              <div className="energy-stats">
-                <div className="stat-item mb-2">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-muted">Today</span>
-                    <span className="badge bg-success">12.5 kWh</span>
-                  </div>
-                  <div className="progress mt-1" style={{height: '6px'}}>
-                    <div className="progress-bar bg-success progress-bar-animated" 
-                         style={{width: '45%'}}></div>
-                  </div>
-                  <small className="text-muted">Cost: $2.10</small>
-                </div>
-                <div className="stat-item">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="text-muted">This Week</span>
-                    <span className="badge bg-warning">85 kWh</span>
-                  </div>
-                  <div className="progress mt-1" style={{height: '6px'}}>
-                    <div className="progress-bar bg-warning progress-bar-animated" 
-                         style={{width: '75%'}}></div>
-                  </div>
-                  <small className="text-muted">Cost: $14.00</small>
-                </div>
-              </div>
-            </div>
-
             <div className="card shadow p-3 weather-card">
               <h5 className="mb-3">
                 <span className="pulse-icon">🌤</span> Live Weather
