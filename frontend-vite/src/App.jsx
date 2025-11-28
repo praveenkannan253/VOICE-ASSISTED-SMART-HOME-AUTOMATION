@@ -559,12 +559,7 @@ function App() {
       const updated = { ...prev };
       if (isOn) {
         // Device turned on
-        if (updated[device] && updated[device].accumulatedTime > 0 && !updated[device].isRunning) {
-          // Resume: continue from where it stopped (has accumulated time and not running)
-          updated[device].startTime = new Date().getTime();
-          updated[device].isRunning = true;
-          console.log(`⏱ ${device} resumed from ${updated[device].accumulatedTime}s`);
-        } else if (!updated[device]) {
+        if (!updated[device]) {
           // First time - start fresh timer
           updated[device] = {
             startTime: new Date().getTime(),
@@ -576,6 +571,11 @@ function App() {
         } else if (updated[device].isRunning) {
           // Already running, do nothing
           console.log(`⏱ ${device} already running`);
+        } else {
+          // Device was off - resume from accumulated time
+          updated[device].startTime = new Date().getTime();
+          updated[device].isRunning = true;
+          console.log(`⏱ ${device} resumed from ${updated[device].accumulatedTime}s`);
         }
       } else {
         // Device turned off - save accumulated time
